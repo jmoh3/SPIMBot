@@ -979,7 +979,7 @@ floyd_warshall:
     sw  $s7, 32($sp)
     sub $sp, $sp, 36
     li $s0, 0 # rows
-    li $s2, 900 # max row & max column
+    li $s2, 900 # |V|
 
 init_floyd_warshall_loop_rows:
     beq $s0, $s2, start_floyd_warshall
@@ -997,9 +997,13 @@ init_floyd_warshall_loop_columns:
     add $s4, $s4, $s3
     # Max int
     li $s5, 65536
-    sw $s5, 0($s4)
+    sw $s5, 0($s4) # distance[u][v] = infinity
+    la $s4, next
+    # &next[u][v]
+    add $s4, $s4, $s3
     # None
-
+    li $s5, -1
+    sw $s5, 0($s4) # next[u][v] = None
 
 init_floyd_warshall_loop_columns_inc:
     add $s1, $s1, 1
@@ -1010,10 +1014,84 @@ init_floyd_warshall_loop_rows_inc:
     j init_floyd_warshall_loop_rows
 
 start_floyd_warshall:
-
+    li $s0, 0 # row
+    li $s2, 30 # max row & max column
 
 start_floyd_warshall_loop_rows:
+    beq $s0, $s2, floyd_warshall_part_2 # if row == 30, end loop
+    li $s1, 0 # column
 
+start_floyd_warshall_loop_columns:
+    beq $s1, $s2, start_floyd_warshall_loop_rows_inc # if col == 30, increment rows
+    li $s3, 30
+    mul $s3, $s3, $s0 # row * 30
+    add $s3, $s3, $s1 # cell number = row * 30 + column
+
+    # offset = 900 * $s3 + $s3
+    li $s4, 900
+    mul $s4, $s4, $s3
+    add $s4, $s4, $s3
+
+    la $s5, distance
+    add $s5, $s4, $s5 # &distance[u][u]
+    sw $0, 0($s5) # distance[u][u] = 0
+
+    la $s5, next # &next
+    add $s5, $s4, $s5 # &next[u][u]
+    sw $s3, 0($s5) # next[u][u] = u
+
+#   if cell is a valid cell (not an obstacle or off the map):
+# 		distance[curr_cell][adjacent_cell] = 1
+# 		next[curr_cell][adjacent_cell] = adjacent_cell
+
+check_left:
+    sub $s6, $s3, 1
+    blt $s6, $0, check_right
+
+    la $s7, arenamap
+    add $s7, $s7, $s6
+    lh $s7, 2(s7)
+    
+    li $t1, 2 # OBSTACLE
+    beq $s7, $t1, check_right # if arenamap[left_cell] == obstacle, check other adjacent cells
+
+    li $s8, 900
+    mul $s8, $s8, $s3 # row is u, so multiply this by 900
+    add $s8, $s8, $s6 # offset for [u][v]
+
+    la $s7, distance
+    add $s7, $s7, $s8
+    li $t0, 1
+    sw $t0, 0($s7)
+
+    la $s7, next
+    add $s7, $s7, $s8
+    sw $s6, 0($s7)
+
+check_right:
+    add $s6, $s3, 1
+    li $t0, 900
+    bgt $s6, $t0, check_up
+
+check_up:
+    sub $s6, $s3, 30
+    blt $s6, $0, check_down
+
+check_down:
+    add $s6, $s3, 30
+    li $t0, 900
+    bgt $s6, $t0, start_floyd_warshall_loop_columns_inc
+
+
+start_floyd_warshall_loop_columns_inc:
+    add $s1, $s1, 1
+    j start_floyd_warshall_loop_columns
+
+start_floyd_warshall_loop_rows_inc:
+    add $s0, $s0, 1
+    j start_floyd_warshall_loop_rows
+
+floyd_warshall_part_2:
 
 floyd_warshall_done:
     lw  $ra, 0($sp)
