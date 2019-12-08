@@ -69,6 +69,7 @@ target_y:    .half 0:1
 main:
 	# Construct interrupt mask
 	li      $t4, 0
+	or      $t4, $t4, TIMER_INT_MASK # request timer
 	or      $t4, $t4, BONK_INT_MASK # request bonk
 	or      $t4, $t4, REQUEST_PUZZLE_INT_MASK	        # puzzle interrupt bit
 	or      $t4, $t4, 1 # global enable
@@ -101,7 +102,7 @@ main:
 	la		$s1, target_x
 	sh 		$s0, 0($s1) 			# target_x = powerup 1's x location
 
-    sw 		$s0, SPIMBOT_PRINT_INT($0)
+    # sw 		$s0, SPIMBOT_PRINT_INT($0)
 
 	# powerup 1's y location
     lh 		$s2, 6($t2)
@@ -114,6 +115,10 @@ main:
     sw $t0, ARENA_MAP($0)
 
     jal floyd_warshall
+
+	lw 		$v0, TIMER($0)
+	add 	$v0, $v0, 50
+	sw 		$v0, TIMER($0)
 
     j 		loop
 
@@ -150,8 +155,8 @@ interrupt_handler:
         sw        $t1, 12($k0)
         sw        $t2, 16($k0)
         sw        $t3, 20($k0)
-		sw $t4, 24($k0)
-		sw $t5, 28($k0)
+		sw 		  $t4, 24($k0)
+		sw 		  $t5, 28($k0)
 
         mfc0      $k0, $13             # Get Cause register
         srl       $a0, $k0, 2
@@ -204,18 +209,18 @@ request_puzzle_interrupt:
     la      $a0, puzzle
     la      $a1, heap
     jal     copy_board    # Copy board to heap
-    la $a0, heap
-    li $a1, 0
-    li $a2, 0
-    la $a3, puzzle
-    jal solve
-    la $t0, puzzle
-    sw $t0, SUBMIT_SOLUTION($0)
-    li $t1, 1
-    sw $t1, SWITCH_MODE($0)
-    sw $0, USE_POWERUP($0)
+    la 		$a0, heap
+    li 		$a1, 0
+    li 		$a2, 0
+    la 		$a3, puzzle
+    jal 	solve
+    la 		$t0, puzzle
+    sw 		$t0, SUBMIT_SOLUTION($0)
+    li 		$t1, 1
+    sw 		$t1, SWITCH_MODE($0)
+    sw 		$0, USE_POWERUP($0)
 
-	j	interrupt_dispatch
+	j		interrupt_dispatch
 
 
 timer_interrupt:
@@ -236,22 +241,32 @@ timer_interrupt:
 
 	lw 		$s1, BOT_X($0)
 	div 	$s1, $s1, 10
+	# sw 		$s1, SPIMBOT_PRINT_INT($0)
 
 	lw 		$s2, BOT_Y($0)
 	div 	$s2, $s2, 10
+	# sw 		$s2, SPIMBOT_PRINT_INT($0)
 
 	la 		$s3, target_x
-	lw 		$s3, 0($s3)
+	lh 		$s3, 0($s3)
+	# sw 		$s3, SPIMBOT_PRINT_INT($0)
 
 	la 		$s4, target_y
-	lw 		$s4, 0($s4)
+	lh 		$s4, 0($s4)
+	# sw 		$s4, SPIMBOT_PRINT_INT($0)
+
 
 	beq 	$s1, $s3, check_y
 
 get_direction:
 	# load target_x and target_y again, in case new target
-	lw 		$s3, 0($s3)
-	lw 		$s4, 0($s4)
+	la 		$s3, target_x
+	lh 		$s3, 0($s3)
+	la 		$s4, target_y
+	lh 		$s4, 0($s4)
+
+	# sw 		$s1, SPIMBOT_PRINT_INT($0)
+	# sw 		$s2, SPIMBOT_PRINT_INT($0)
 
 	mul 	$s5, $s2, 30 			# $s5 = uy * 30
 	add 	$s5, $s5, $s1 			# $s5 = ux + s5
@@ -262,6 +277,19 @@ get_direction:
 
 	add 	$s7, $s5, $s7			# $s7 = u stuff + v stuff
 	add 	$s0, $s0, $s7			# s0 = next[u][v]
+	li 		$s6, 123456
+	sw 		$s6, SPIMBOT_PRINT_INT($0)
+	sw 		$s0, SPIMBOT_PRINT_INT($0)
+
+	sub		$s6, $s0, $s5 			# $s6 = next[u][v] - u
+
+
+
+
+set_timer:
+	lw 		$v0, TIMER($0)
+	add 	$v0, $v0, 10000
+	sw 		$v0, TIMER($0)
 
 
     j        interrupt_dispatch    # see if other interrupts are waiting
@@ -274,6 +302,8 @@ check_y:
 pickup:
     li 		$s5, 1
 	sw 		$s5, PICKUP_POWERUP($0)
+	# li 		$s6, 1234
+	# sw 		$s6, SPIMBOT_PRINT_INT($0)
 
 	# set new target as 1st powerup
 	la 		$t2, powerup
@@ -288,7 +318,7 @@ pickup:
     lh 		$s5, 6($t2)
 	la		$s6, target_y
 	sh 		$s5, 0($s6) 			# target_y = powerup 1's y location
-	
+
     j 		get_direction
 
 
@@ -1203,7 +1233,7 @@ floyd_warshall_part_2_k_loop_inc:
 # $a2 = value to store
 store_to_distance:
     la $t0, distance # &distance
-    
+
     li $t1, 900
     mul $t1, $t1, $a0
     add $t1, $t1, $a1
@@ -1219,7 +1249,7 @@ store_to_distance:
 # $a2 = value to store
 store_to_next:
     la $t0, next # &distance
-    
+
     li $t1, 900
     mul $t1, $t1, $a0
     add $t1, $t1, $a1
@@ -1227,14 +1257,14 @@ store_to_next:
     add $t1, $t1, $t0
 
     sw $a2, 0($t1)
-    
+
     jr $ra
 
 # $a0 = u cell number (30*y + x)
 # $a1 = v cell number (30*y + x)
 get_from_distance:
     la $t0, distance # &distance
-    
+
     li $t1, 900
     mul $t1, $t1, $a0
     add $t1, $t1, $a1
@@ -1249,7 +1279,7 @@ get_from_distance:
 # $a1 = v cell number (30*y + x)
 get_from_next:
     la $t0, next # &distance
-    
+
     li $t1, 900
     mul $t1, $t1, $a0
     add $t1, $t1, $a1
@@ -1269,7 +1299,7 @@ get_tile_type_at_loc:
     lh $t1, 2($t1)
 
     li $t2, 2 # OBSTACLE
-    
+
     sub $v0, $t1, $t2
 
     jr $ra
