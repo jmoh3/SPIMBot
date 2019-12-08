@@ -57,13 +57,13 @@ puzzle:      .half 0:164
 heap:        .half 0:65536
 # 900 x 900 array filled with distances between cells
 # cells labelled in row major order
-distance:    .half 0:820000
+distance:    .word 0:820000
 # 900 x 900 array 
 # next[u][v] = next vertex you must visit in shortest path from u to v
-next:        .half 0:820000
+next:        .word 0:820000
 arenamap:    .word 0:900
-target_x:    .half 0:1
-target_y:    .half 0:1
+target_x:    .word 0:1
+target_y:    .word 0:1
 
 .text
 main:
@@ -907,9 +907,41 @@ floyd_warshall:
     sw  $s6, 28($sp)
     sw  $s7, 32($sp)
     sub $sp, $sp, 36
-    li 
+    li $s0, 0 # rows
+    li $s2, 900 # max row & max column
 
-init_loop_rows:
+init_floyd_warshall_loop_rows:
+    beq $s0, $s2, start_floyd_warshall
+    li $s1, 0 # columns
+
+init_floyd_warshall_loop_columns:
+    beq $s1, $s2, init_floyd_warshall_loop_rows_inc
+    # find offset for $s0, $s1
+    # offset = 900 * $s0 + $s1
+    li $s3, 900
+    mul $s3, $s3, $s0
+    add $s3, $s3, $s1
+    la $s4, distance
+    # &distance[u][v]
+    add $s4, $s4, $s3
+    # Max int
+    li $s5, 65536
+    sw $s5, 0($s4)
+    # None
+
+
+init_floyd_warshall_loop_columns_inc:
+    add $s1, $s1, 1
+    j init_floyd_warshall_loop_columns
+
+init_floyd_warshall_loop_rows_inc:
+    add $s0, $s0, 1
+    j init_floyd_warshall_loop_rows
+
+start_floyd_warshall:
+
+
+start_floyd_warshall_loop_rows:
 
 
 floyd_warshall_done:
