@@ -1139,9 +1139,45 @@ floyd_warshall_part_2_j_loop:
     beq $s2, $t0, floyd_warshall_part_2_i_loop_inc
 
 floyd_warshall_part_2_inner_loop:
-    # get offset for [i][j]
-    # get offset for [i][k]
-    # get offset for [k][j]
+    # get distance[i][j]
+    move $a0, $s1
+    move $a1, $s2
+    jal get_from_distance
+    move $t0, $v0
+    # get distance[i][k]
+    move $a0, $s1
+    move $a1, $s0
+    jal get_from_distance
+    move $t1, $v0
+    # get distance[k][j]
+    move $a0, $s2
+    move $a1, $s0
+    jal get_from_distance
+    move $t2, $v0
+
+    # get distance[i][k] + distance[k][j]
+    add $t3, $t1, $t2
+
+    # if distance[i][j] > distance[i][k] + distance[k][j] continue
+    ble $t0, $t3, floyd_warshall_part_2_j_loop_inc
+
+# distance[i][j] ← distance[i][k] + distance[k][j]
+# next[i][j] ← next[i][k]
+floyd_warshall_relax_edge:
+    move $a0, $s1
+    move $a1, $s2
+    move $a2, $t3
+    jal store_to_distance # distance[i][j] ← distance[i][k] + distance[k][j]
+
+    move $a0, $s1
+    move $a0, $s0
+    jal get_from_next # next[i][k]
+    move $t0, $v0
+
+    move $a0, $s1
+    move $a1, $s2
+    move $a2, $t0
+    jal store_to_next # next[i][j] ← next[i][k]
 
 floyd_warshall_part_2_j_loop_inc:
     add $s2, $s2, 1 # j++
