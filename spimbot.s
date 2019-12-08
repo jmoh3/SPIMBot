@@ -14,6 +14,9 @@ ANGLE_CONTROL           = 0xffff0018
 BOT_X                   = 0xffff0020
 BOT_Y                   = 0xffff0024
 
+OTHER_BOT_X             = 0xffff00a0
+OTHER_BOT_Y             = 0xffff00a4
+
 TIMER                   = 0xffff001c
 ARENA_MAP               = 0xffff00dc
 
@@ -31,6 +34,17 @@ REQUEST_PUZZLE_ACK      = 0xffff00d8  ## Puzzle
 
 GET_PAINT_BUCKETS       = 0xffff00e4
 SWITCH_MODE             = 0xffff00f0
+
+OPPONENT_POWERUP_ACK    = 0xffff00c8
+POWERUP_MAP             = 0xffff00e0
+GET_INVENTORY           = 0xffff00e8
+GET_OPPONENT_POWERUP    = 0xffff00c4
+PICKUP_POWERUP          = 0xffff00f4
+USE_POWERUP             = 0xffff00ec
+
+SCORES_REQUEST          = 0xffff1018
+
+
 
 ### Puzzle
 GRIDSIZE = 8
