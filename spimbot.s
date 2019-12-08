@@ -69,6 +69,7 @@ target_y:    .half 0:1
 main:
 	# Construct interrupt mask
 	li      $t4, 0
+	or      $t4, $t4, TIMER_INT_MASK # request timer
 	or      $t4, $t4, BONK_INT_MASK # request bonk
 	or      $t4, $t4, REQUEST_PUZZLE_INT_MASK	        # puzzle interrupt bit
 	or      $t4, $t4, 1 # global enable
@@ -101,14 +102,14 @@ main:
 	la		$s1, target_x
 	sh 		$s0, 0($s1) 			# target_x = powerup 1's x location
 
-    sw 		$s0, SPIMBOT_PRINT_INT($0)
+    # sw 		$s0, SPIMBOT_PRINT_INT($0)
 
 	# powerup 1's y location
     lh 		$s2, 6($t2)
 	la		$s3, target_y
 	sh 		$s2, 0($s3) 			# target_y = powerup 1's y location
 
-    sw 		$s2, SPIMBOT_PRINT_INT($0)
+    # sw 		$s2, SPIMBOT_PRINT_INT($0)
 
 	lw 		$v0, TIMER($0)
 	add 	$v0, $v0, 50
@@ -229,33 +230,38 @@ timer_interrupt:
 	sw  	$s6, 28($sp)
 	sw  	$s7, 32($sp)
 	sub 	$sp, $sp, 36
-	li 		$s0, 4200
-	sw 		$s0, SPIMBOT_PRINT_INT($0)
 
 	la 		$s0, next
 	lw 		$s0, 0($s0)
 
 	lw 		$s1, BOT_X($0)
 	div 	$s1, $s1, 10
+	# sw 		$s1, SPIMBOT_PRINT_INT($0)
 
 	lw 		$s2, BOT_Y($0)
 	div 	$s2, $s2, 10
+	# sw 		$s2, SPIMBOT_PRINT_INT($0)
 
 	la 		$s3, target_x
-	lw 		$s3, 0($s3)
+	lh 		$s3, 0($s3)
+	# sw 		$s3, SPIMBOT_PRINT_INT($0)
 
 	la 		$s4, target_y
-	lw 		$s4, 0($s4)
+	lh 		$s4, 0($s4)
+	# sw 		$s4, SPIMBOT_PRINT_INT($0)
+
 
 	beq 	$s1, $s3, check_y
 
 get_direction:
 	# load target_x and target_y again, in case new target
-	lw 		$s3, 0($s3)
-	lw 		$s4, 0($s4)
+	la 		$s3, target_x
+	lh 		$s3, 0($s3)
+	la 		$s4, target_y
+	lh 		$s4, 0($s4)
 
-	sw 		$s3, SPIMBOT_PRINT_INT($0)
-	sw 		$s4, SPIMBOT_PRINT_INT($0)
+	# sw 		$s1, SPIMBOT_PRINT_INT($0)
+	# sw 		$s2, SPIMBOT_PRINT_INT($0)
 
 	mul 	$s5, $s2, 30 			# $s5 = uy * 30
 	add 	$s5, $s5, $s1 			# $s5 = ux + s5
@@ -266,7 +272,16 @@ get_direction:
 
 	add 	$s7, $s5, $s7			# $s7 = u stuff + v stuff
 	add 	$s0, $s0, $s7			# s0 = next[u][v]
+	li 		$s6, 123456
+	sw 		$s6, SPIMBOT_PRINT_INT($0)
+	sw 		$s0, SPIMBOT_PRINT_INT($0)
 
+	sub		$s6, $s0, $s5 			# $s6 = next[u][v] - u
+
+
+
+
+set_timer:
 	lw 		$v0, TIMER($0)
 	add 	$v0, $v0, 10000
 	sw 		$v0, TIMER($0)
@@ -282,6 +297,8 @@ check_y:
 pickup:
     li 		$s5, 1
 	sw 		$s5, PICKUP_POWERUP($0)
+	# li 		$s6, 1234
+	# sw 		$s6, SPIMBOT_PRINT_INT($0)
 
 	# set new target as 1st powerup
 	la 		$t2, powerup
@@ -1050,8 +1067,8 @@ check_left:
 
     la $s7, arenamap
     add $s7, $s7, $s6
-    lh $s7, 2(s7)
-    
+    lh $s7, 2($s7)
+
     li $t1, 2 # OBSTACLE
     beq $s7, $t1, check_right # if arenamap[left_cell] == obstacle, check other adjacent cells
 
