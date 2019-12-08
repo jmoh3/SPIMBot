@@ -58,12 +58,12 @@ heap:        .half 0:65536
 # 900 x 900 array filled with distances between cells
 # cells labelled in row major order
 distance:    .word 0:820000
-# 900 x 900 array 
+# 900 x 900 array
 # next[u][v] = next vertex you must visit in shortest path from u to v
 next:        .word 0:820000
 arenamap:    .word 0:900
-target_x:    .word 0:1
-target_y:    .word 0:1
+target_x:    .half 0:1
+target_y:    .half 0:1
 
 .text
 main:
@@ -96,14 +96,20 @@ main:
     la $t2, powerup
     sw $t2, POWERUP_MAP($0)
 
-    # powerup 3's x location
-    lh $s0 28($t2)
-    sw $s0, SPIMBOT_PRINT_INT($0)
+    # powerup 1's x location
+    lh 		$s0, 4($t2)
+	la		$s1, target_x
+	sh 		$s0, 0($s1) 			# target_x = powerup 1's x location
 
-    # powerup 3's y location
-    lh $s1 30($t2)
-    sw $s1, SPIMBOT_PRINT_INT($0)
-    j loop
+    sw 		$s0, SPIMBOT_PRINT_INT($0)
+
+	# powerup 1's y location
+    lh 		$s2, 6($t2)
+	la		$s3, target_y
+	sh 		$s2, 0($s3) 			# target_y = powerup 1's y location
+
+    sw 		$s2, SPIMBOT_PRINT_INT($0)
+    j 		loop
 
     lw  $ra, 0($sp)
     lw  $s0, 4($sp)
@@ -119,25 +125,6 @@ main:
 	jr $ra
 
 loop:
-    lw $s2, BOT_X($0)
-    div $s2, $s2, 10
-
-    lw $s3, BOT_Y($0)
-    div $s3, $s3, 10
-
-    beq $s2, $s0, check_y
-
-    j loop
-
-check_y:
-    beq $s3, $s1, pickup
-    j loop
-
-pickup:
-    li $t6, 1
-	sw $t6, PICKUP_POWERUP($0)
-    # sw $0, USE_POWERUP($0)
-
     j loop
 
 
@@ -188,19 +175,19 @@ interrupt_dispatch:            # Interrupt:
 bonk_interrupt:
 	sw 		$0, BONK_ACK
     #Fill in your code here
-    la $t0, puzzle
-    sw $t0, REQUEST_PUZZLE($0)
-    li $t1, 1
-    sw $t1, ANGLE_CONTROL($0)
-    lw $t1, ANGLE($0)
+    la 		$t0, puzzle
+    sw 		$t0, REQUEST_PUZZLE($0)
+    li 		$t1, 1
+    sw 		$t1, ANGLE_CONTROL($0)
+    lw 		$t1, ANGLE($0)
     lw 		$t3, TIMER($0)
 	rem 	$t3, $t3, 360
 	add 	$t1, $t1, $t3
-    li $t2, 360
-    rem $t1, $t1, $t2
-    sw $t1, ANGLE($0)
-    li $t1, 10
-    sw $t1, VELOCITY($0)
+    li 		$t2, 360
+    rem 	$t1, $t1, $t2
+    sw 		$t1, ANGLE($0)
+    li 		$t1, 10
+    sw 		$t1, VELOCITY($0)
 
     j       interrupt_dispatch    # see if other interrupts are waiting
 
@@ -224,10 +211,80 @@ request_puzzle_interrupt:
 
 	j	interrupt_dispatch
 
+
 timer_interrupt:
 	sw 		$0, TIMER_ACK
-	#Fill in your code here
+	sw  	$ra, 0($sp)
+	sw  	$s0, 4($sp)
+	sw  	$s1, 8($sp)
+	sw  	$s2, 12($sp)
+	sw  	$s3, 16($sp)
+	sw  	$s4, 20($sp)
+	sw  	$s5, 24($sp)
+	sw  	$s6, 28($sp)
+	sw  	$s7, 32($sp)
+	sub 	$sp, $sp, 36
+
+	la 		$s0, next
+	lw 		$s0, 0($s0)
+
+	lw 		$s1, BOT_X($0)
+	div 	$s1, $s1, 10
+
+	lw 		$s2, BOT_Y($0)
+	div 	$s2, $s2, 10
+
+	la 		$s3, target_x
+	lw 		$s3, 0($s3)
+
+	la 		$s4, target_y
+	lw 		$s4, 0($s4)
+
+	beq 	$s1, $s3, check_y
+
+get_direction:
+	# load target_x and target_y again, in case new target
+	lw 		$s3, 0($s3)
+	lw 		$s4, 0($s4)
+
+	mul 	$s5, $s2, 30 			# $s5 = uy * 30
+	add 	$s5, $s5, $s1 			# $s5 = ux + s5
+
+	mul 	$s6, $s4, 30 			# $s6 = vy * 30
+	add 	$s6, $s6, $s3 			# $s6 = vx + s6
+	mul 	$s7, $s6, 900			# $s7 = 900 * s6
+
+	add 	$s7, $s5, $s7			# $s7 = u stuff + v stuff
+	add 	$s0, $s0, $s7			# s0 = next[u][v]
+
+
     j        interrupt_dispatch    # see if other interrupts are waiting
+
+
+check_y:
+    beq 	$s2, $s4, pickup
+    j 		get_direction
+
+pickup:
+    li 		$s5, 1
+	sw 		$s5, PICKUP_POWERUP($0)
+
+	# set new target as 1st powerup
+	la 		$t2, powerup
+    sw 		$t2, POWERUP_MAP($0)
+
+    # powerup 1's x location
+    lh 		$s5, 4($t2)
+	la		$s6, target_x
+	sh 		$s5, 0($s6) 			# target_x = powerup 1's x location
+
+	# powerup 1's y location
+    lh 		$s5, 6($t2)
+	la		$s6, target_y
+	sh 		$s5, 0($s6) 			# target_y = powerup 1's y location
+	
+    j 		get_direction
+
 
 non_intrpt:                # was some non-interrupt
     li        $v0, PRINT_STRING
@@ -882,7 +939,7 @@ ih_done:
 # 		curr_cell =  map[row][column]
 # 		distance[curr_cell][curr_cell] = 0
 # 		next[curr_cell][curr_cell] = curr_cell
-#	
+#
 # 		for adjacent_cell to current cell:
 # 			if cell is a valid cell (not an obstacle or off the map):
 # 				distance[curr_cell][adjacent_cell] = 1
@@ -1034,13 +1091,3 @@ floyd_warshall_done:
     lw  $s7, 32($sp)
     add $sp, $sp, 36
     jr $ra
-
-# Pathfinding
-# procedure Path(u, v)
-#    if next[u][v] = null then
-#        return []
-#    path = [u]
-#    while u ≠ v
-#        u ← next[u][v]
-#        path.append(u)
-#    return path
