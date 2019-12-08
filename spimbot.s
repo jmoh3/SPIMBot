@@ -55,6 +55,9 @@ inventory:   .half 0:30
 powerup:     .half 0:200
 puzzle:      .half 0:164
 heap:        .half 0:65536
+distance:    .half 0:810000
+next:        .half 0:810000
+arenamap:    .word 0:900
 
 .text
 main:
@@ -118,9 +121,6 @@ loop:
 
     beq $s2, $s0, check_y
 
-    # lw $s4, GET_PAINT_BUCKETS($0)
-    # beq $s4, $0, request_puzzle
-
     j loop
 
 check_y:
@@ -130,9 +130,7 @@ check_y:
 pickup:
     li $t6, 1
 	sw $t6, PICKUP_POWERUP($0)
-    li $t8, 420
-    sw $t8, SPIMBOT_PRINT_INT($0)
-    sw $0, USE_POWERUP($0)
+    # sw $0, USE_POWERUP($0)
 
     j loop
 
@@ -216,6 +214,7 @@ request_puzzle_interrupt:
     sw $t0, SUBMIT_SOLUTION($0)
     li $t1, 1
     sw $t1, SWITCH_MODE($0)
+    sw $0, USE_POWERUP($0)
 
 	j	interrupt_dispatch
 
@@ -864,3 +863,57 @@ ih_loop:
 ih_done:
     move $v0, $a1
     jr $ra
+
+# Floyd Warshall ###################################################
+#
+# argument $a0: pointer to arena map
+#
+# Initialize distance array dist[900][900] with MAXINT
+# Initialize next array next[900][900] with -1
+#
+# for row in range(num_rows)
+# 	for column in range(num_columns)
+# 		curr_cell =  map[row][column]
+# 		distance[curr_cell][curr_cell] = 0
+# 		next[curr_cell][curr_cell] = curr_cell
+#	
+# 		for adjacent_cell to current cell:
+# 			if cell is a valid cell (not an obstacle or off the map):
+# 				distance[curr_cell][adjacent_cell] = 1
+# 				next[curr_cell][adjacent_cell] = adjacent_cell
+
+floyd_warshall:
+    #Fill in your code here
+    sw  $ra, 0($sp)
+    sw  $s0, 4($sp)
+    sw  $s1, 8($sp)
+    sw  $s2, 12($sp)
+    sw  $s3, 16($sp)
+    sw  $s4, 20($sp)
+    sw  $s5, 24($sp)
+    sw  $s6, 28($sp)
+    sw  $s7, 32($sp)
+    sub $sp, $sp, 36
+
+
+floyd_warshall_done:
+    lw  $ra, 0($sp)
+    lw  $s0, 4($sp)
+    lw  $s1, 8($sp)
+    lw  $s2, 12($sp)
+    lw  $s3, 16($sp)
+    lw  $s4, 20($sp)
+    lw  $s5, 24($sp)
+    lw  $s6, 28($sp)
+    lw  $s7, 32($sp)
+    add $sp, $sp, 36
+    jr $ra
+
+# Pathfinding
+
+# for k in range(30)
+# 	for i in range(30)
+# 		for j in range(30)
+# 			if distance[i][j] > distance[i][k] + distance[k][j] then
+#                		distance[i][j] ← distance[i][k] + distance[k][j]
+#                		next[i][j] ← next[i][k]
