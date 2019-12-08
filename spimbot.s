@@ -189,7 +189,9 @@ bonk_interrupt:
     li $t1, 1
     sw $t1, ANGLE_CONTROL($0)
     lw $t1, ANGLE($0)
-    add $t1, $t1, 80
+    lw 		$t3, TIMER($0)
+	rem 	$t3, $t3, 360
+	add 	$t1, $t1, $t3
     li $t2, 360
     rem $t1, $t1, $t2
     sw $t1, ANGLE($0)
