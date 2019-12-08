@@ -44,6 +44,7 @@ USE_POWERUP             = 0xffff00ec
 
 SCORES_REQUEST          = 0xffff1018
 
+SPIMBOT_PRINT_INT       = 0xffff0080
 
 
 ### Puzzle
@@ -51,6 +52,7 @@ GRIDSIZE = 8
 
 ### Put these in your data segment
 inventory:   .half 0:30
+powerup:     .half 0:200
 puzzle:      .half 0:164
 heap:        .half 0:65536
 
@@ -71,18 +73,42 @@ main:
     li $t1, 10
     sw $t1, VELOCITY($0)
 
+    la $t2, powerup
+    sw $t2, POWERUP_MAP($0)
+
+    # powerup 1's x location
+    lh $t4 4($t2)
+    sw $t4, SPIMBOT_PRINT_INT($0)
+
+    # powerup 1's y location
+    lh $t5 6($t2)
+    sw $t5, SPIMBOT_PRINT_INT($0)
     j loop
 
 	jr $ra
 
 loop:
-    # lw $t2, GET_PAINT_BUCKETS($0)
-    # la $t0, puzzle
-    # sw $t0, REQUEST_PUZZLE($0)
-	li $t5, 5
-	sw $t5, PICKUP_POWERUP($0)
+    lw $t2, BOT_X($0)
+    div $t2, $t2, 10
+
+    lw $t3, BOT_Y($0)
+    div $t3, $t3, 10
+
+    beq $t2, $t4, check_y
+
     j loop
 
+check_y:
+    beq $t3, $t5, pickup
+    j loop
+
+pickup:
+    li $t6, 1
+	sw $t6, PICKUP_POWERUP($0)
+    li $t8, 420
+    sw $t8, SPIMBOT_PRINT_INT($0)
+
+    j loop
 
 .kdata
 chunkIH:    .space 32
@@ -161,8 +187,6 @@ request_puzzle_interrupt:
     sw $t1, SWITCH_MODE($0)
     la $t0, puzzle
     sw $t0, REQUEST_PUZZLE($0)
-	li $t3, 0
-	sw $t3, USE_POWERUP($0)
 
 	j	interrupt_dispatch
 
