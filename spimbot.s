@@ -57,10 +57,10 @@ puzzle:      .half 0:164
 heap:        .half 0:65536
 # 900 x 900 array filled with distances between cells
 # cells labelled in row major order
-distance:    .half 0:820000
+distance:    .word 0:820000
 # 900 x 900 array
 # next[u][v] = next vertex you must visit in shortest path from u to v
-next:        .half 0:820000
+next:        .word 0:820000
 arenamap:    .word 0:900
 target_x:    .half 0:1
 target_y:    .half 0:1
@@ -96,14 +96,20 @@ main:
     la $t2, powerup
     sw $t2, POWERUP_MAP($0)
 
-    # powerup 3's x location
-    lh $s0 28($t2)
-    sw $s0, SPIMBOT_PRINT_INT($0)
+    # powerup 1's x location
+    lh 		$s0, 4($t2)
+	la		$s1, target_x
+	sh 		$s0, 0($s1) 			# target_x = powerup 1's x location
 
-    # powerup 3's y location
-    lh $s1 30($t2)
-    sw $s1, SPIMBOT_PRINT_INT($0)
-    j loop
+    sw 		$s0, SPIMBOT_PRINT_INT($0)
+
+	# powerup 1's y location
+    lh 		$s2, 6($t2)
+	la		$s3, target_y
+	sh 		$s2, 0($s3) 			# target_y = powerup 1's y location
+
+    sw 		$s2, SPIMBOT_PRINT_INT($0)
+    j 		loop
 
     lw  $ra, 0($sp)
     lw  $s0, 4($sp)
@@ -119,25 +125,6 @@ main:
 	jr $ra
 
 loop:
-    lw $s2, BOT_X($0)
-    div $s2, $s2, 10
-
-    lw $s3, BOT_Y($0)
-    div $s3, $s3, 10
-
-    beq $s2, $s0, check_y
-
-    j loop
-
-check_y:
-    beq $s3, $s1, pickup
-    j loop
-
-pickup:
-    li $t6, 1
-	sw $t6, PICKUP_POWERUP($0)
-    # sw $0, USE_POWERUP($0)
-
     j loop
 
 
@@ -188,19 +175,19 @@ interrupt_dispatch:            # Interrupt:
 bonk_interrupt:
 	sw 		$0, BONK_ACK
     #Fill in your code here
-    la $t0, puzzle
-    sw $t0, REQUEST_PUZZLE($0)
-    li $t1, 1
-    sw $t1, ANGLE_CONTROL($0)
-    lw $t1, ANGLE($0)
+    la 		$t0, puzzle
+    sw 		$t0, REQUEST_PUZZLE($0)
+    li 		$t1, 1
+    sw 		$t1, ANGLE_CONTROL($0)
+    lw 		$t1, ANGLE($0)
     lw 		$t3, TIMER($0)
 	rem 	$t3, $t3, 360
 	add 	$t1, $t1, $t3
-    li $t2, 360
-    rem $t1, $t1, $t2
-    sw $t1, ANGLE($0)
-    li $t1, 10
-    sw $t1, VELOCITY($0)
+    li 		$t2, 360
+    rem 	$t1, $t1, $t2
+    sw 		$t1, ANGLE($0)
+    li 		$t1, 10
+    sw 		$t1, VELOCITY($0)
 
     j       interrupt_dispatch    # see if other interrupts are waiting
 
@@ -224,24 +211,7 @@ request_puzzle_interrupt:
 
 	j	interrupt_dispatch
 
-	# Pathfinding ###################################################
-	#
-	# argument $a0: x1
-	# argument $a1: y1
-	# argument $a2: x2
-	# argument $a3: y2
-	#
-	# procedure Path(u, v)
-	#    if next[u][v] = null then
-	#        return []
-	#    path = [u]
-	#    while u ≠ v
-	#        u ← next[u][v]
-	#        path.append(u)
-	#    return path
 
-	# arenamap[x][y] = x + (y * 30)
-	#
 timer_interrupt:
 	sw 		$0, TIMER_ACK
 	sw  	$ra, 0($sp)
@@ -270,22 +240,50 @@ timer_interrupt:
 	la 		$s4, target_y
 	lw 		$s4, 0($s4)
 
+	beq 	$s1, $s3, check_y
+
+get_direction:
+	# load target_x and target_y again, in case new target
+	lw 		$s3, 0($s3)
+	lw 		$s4, 0($s4)
+
 	mul 	$s5, $s2, 30 			# $s5 = uy * 30
 	add 	$s5, $s5, $s1 			# $s5 = ux + s5
 
 	mul 	$s6, $s4, 30 			# $s6 = vy * 30
 	add 	$s6, $s6, $s3 			# $s6 = vx + s6
-	mul 	$s6, $s6, 900			# $s6 = 900 * s6
+	mul 	$s7, $s6, 900			# $s7 = 900 * s6
 
-	add 	$s5, $s5, $s6			# $s5 = u stuff + v stuff
-	add 	$s0, $s0, $s5			# s5 = next[u][v]
+	add 	$s7, $s5, $s7			# $s7 = u stuff + v stuff
+	add 	$s0, $s0, $s7			# s0 = next[u][v]
 
-	# bne		$s5, $0, notnull_pathfinding
 
     j        interrupt_dispatch    # see if other interrupts are waiting
 
-notnull_pathfinding:
 
+check_y:
+    beq 	$s2, $s4, pickup
+    j 		get_direction
+
+pickup:
+    li 		$s5, 1
+	sw 		$s5, PICKUP_POWERUP($0)
+
+	# set new target as 1st powerup
+	la 		$t2, powerup
+    sw 		$t2, POWERUP_MAP($0)
+
+    # powerup 1's x location
+    lh 		$s5, 4($t2)
+	la		$s6, target_x
+	sh 		$s5, 0($s6) 			# target_x = powerup 1's x location
+
+	# powerup 1's y location
+    lh 		$s5, 6($t2)
+	la		$s6, target_y
+	sh 		$s5, 0($s6) 			# target_y = powerup 1's y location
+	
+    j 		get_direction
 
 
 non_intrpt:                # was some non-interrupt
@@ -966,9 +964,41 @@ floyd_warshall:
     sw  $s6, 28($sp)
     sw  $s7, 32($sp)
     sub $sp, $sp, 36
-    li
+    li $s0, 0 # rows
+    li $s2, 900 # max row & max column
 
-init_loop_rows:
+init_floyd_warshall_loop_rows:
+    beq $s0, $s2, start_floyd_warshall
+    li $s1, 0 # columns
+
+init_floyd_warshall_loop_columns:
+    beq $s1, $s2, init_floyd_warshall_loop_rows_inc
+    # find offset for $s0, $s1
+    # offset = 900 * $s0 + $s1
+    li $s3, 900
+    mul $s3, $s3, $s0
+    add $s3, $s3, $s1
+    la $s4, distance
+    # &distance[u][v]
+    add $s4, $s4, $s3
+    # Max int
+    li $s5, 65536
+    sw $s5, 0($s4)
+    # None
+
+
+init_floyd_warshall_loop_columns_inc:
+    add $s1, $s1, 1
+    j init_floyd_warshall_loop_columns
+
+init_floyd_warshall_loop_rows_inc:
+    add $s0, $s0, 1
+    j init_floyd_warshall_loop_rows
+
+start_floyd_warshall:
+
+
+start_floyd_warshall_loop_rows:
 
 
 floyd_warshall_done:
