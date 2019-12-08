@@ -62,8 +62,8 @@ distance:    .half 0:820000
 # next[u][v] = next vertex you must visit in shortest path from u to v
 next:        .half 0:820000
 arenamap:    .word 0:900
-path:        .half 0:900
-path_idx:    .half 0:1
+target_x:    .half 0:1
+target_y:    .half 0:1
 
 .text
 main:
@@ -926,12 +926,13 @@ ih_done:
 # 			if cell is a valid cell (not an obstacle or off the map):
 # 				distance[curr_cell][adjacent_cell] = 1
 # 				next[curr_cell][adjacent_cell] = adjacent_cell
+#
 # for k in range(30)
 # 	for i in range(30)
 # 		for j in range(30)
 # 			if distance[i][j] > distance[i][k] + distance[k][j] then
 #               distance[i][j] ← distance[i][k] + distance[k][j]
-#                	next[i][j] ← next[i][k]
+#                next[i][j] ← next[i][k]
 
 floyd_warshall:
     #Fill in your code here
@@ -945,7 +946,9 @@ floyd_warshall:
     sw  $s6, 28($sp)
     sw  $s7, 32($sp)
     sub $sp, $sp, 36
+    li 
 
+init_loop_rows:
 
 
 floyd_warshall_done:
