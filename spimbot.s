@@ -55,9 +55,15 @@ inventory:   .half 0:30
 powerup:     .half 0:200
 puzzle:      .half 0:164
 heap:        .half 0:65536
-distance:    .half 0:810000
-next:        .half 0:810000
+# 900 x 900 array filled with distances between cells
+# cells labelled in row major order
+distance:    .half 0:820000
+# 900 x 900 array 
+# next[u][v] = next vertex you must visit in shortest path from u to v
+next:        .half 0:820000
 arenamap:    .word 0:900
+path:        .half 0:900
+path_idx:    .half 0:1
 
 .text
 main:
@@ -915,5 +921,5 @@ floyd_warshall_done:
 # 	for i in range(30)
 # 		for j in range(30)
 # 			if distance[i][j] > distance[i][k] + distance[k][j] then
-#                		distance[i][j] ← distance[i][k] + distance[k][j]
-#                		next[i][j] ← next[i][k]
+#               distance[i][j] ← distance[i][k] + distance[k][j]
+#                	next[i][j] ← next[i][k]
