@@ -887,6 +887,12 @@ ih_done:
 # 			if cell is a valid cell (not an obstacle or off the map):
 # 				distance[curr_cell][adjacent_cell] = 1
 # 				next[curr_cell][adjacent_cell] = adjacent_cell
+# for k in range(30)
+# 	for i in range(30)
+# 		for j in range(30)
+# 			if distance[i][j] > distance[i][k] + distance[k][j] then
+#               distance[i][j] ← distance[i][k] + distance[k][j]
+#                	next[i][j] ← next[i][k]
 
 floyd_warshall:
     #Fill in your code here
@@ -917,10 +923,11 @@ floyd_warshall_done:
     jr $ra
 
 # Pathfinding
-
-# for k in range(30)
-# 	for i in range(30)
-# 		for j in range(30)
-# 			if distance[i][j] > distance[i][k] + distance[k][j] then
-#               distance[i][j] ← distance[i][k] + distance[k][j]
-#                	next[i][j] ← next[i][k]
+# procedure Path(u, v)
+#    if next[u][v] = null then
+#        return []
+#    path = [u]
+#    while u ≠ v
+#        u ← next[u][v]
+#        path.append(u)
+#    return path
