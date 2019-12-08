@@ -66,6 +66,17 @@ main:
 	mtc0    $t4, $12
 
 	#Fill in your code here
+    sw  $ra, 0($sp)
+    sw  $s0, 4($sp)
+    sw  $s1, 8($sp)
+    sw  $s2, 12($sp)
+    sw  $s3, 16($sp)
+    sw  $s4, 20($sp)
+    sw  $s5, 24($sp)
+    sw  $s6, 28($sp)
+    sw  $s7, 32($sp)
+    sub $sp, $sp, 36
+
     la $t0, puzzle
     sw $t0, REQUEST_PUZZLE($0)
     li $t1, 1
@@ -76,30 +87,44 @@ main:
     la $t2, powerup
     sw $t2, POWERUP_MAP($0)
 
-    # powerup 1's x location
-    lh $t4 4($t2)
-    sw $t4, SPIMBOT_PRINT_INT($0)
+    # powerup 3's x location
+    lh $s0 28($t2)
+    sw $s0, SPIMBOT_PRINT_INT($0)
 
-    # powerup 1's y location
-    lh $t5 6($t2)
-    sw $t5, SPIMBOT_PRINT_INT($0)
+    # powerup 3's y location
+    lh $s1 30($t2)
+    sw $s1, SPIMBOT_PRINT_INT($0)
     j loop
+
+    lw  $ra, 0($sp)
+    lw  $s0, 4($sp)
+    lw  $s1, 8($sp)
+    lw  $s2, 12($sp)
+    lw  $s3, 16($sp)
+    lw  $s4, 20($sp)
+    lw  $s5, 24($sp)
+    lw  $s6, 28($sp)
+    lw  $s7, 32($sp)
+    add $sp, $sp, 36
 
 	jr $ra
 
 loop:
-    lw $t2, BOT_X($0)
-    div $t2, $t2, 10
+    lw $s2, BOT_X($0)
+    div $s2, $s2, 10
 
-    lw $t3, BOT_Y($0)
-    div $t3, $t3, 10
+    lw $s3, BOT_Y($0)
+    div $s3, $s3, 10
 
-    beq $t2, $t4, check_y
+    beq $s2, $s0, check_y
+
+    # lw $s4, GET_PAINT_BUCKETS($0)
+    # beq $s4, $0, request_puzzle
 
     j loop
 
 check_y:
-    beq $t3, $t5, pickup
+    beq $s3, $s1, pickup
     j loop
 
 pickup:
@@ -107,8 +132,10 @@ pickup:
 	sw $t6, PICKUP_POWERUP($0)
     li $t8, 420
     sw $t8, SPIMBOT_PRINT_INT($0)
+    sw $0, USE_POWERUP($0)
 
     j loop
+
 
 .kdata
 chunkIH:    .space 32
@@ -157,10 +184,12 @@ interrupt_dispatch:            # Interrupt:
 bonk_interrupt:
 	sw 		$0, BONK_ACK
     #Fill in your code here
+    la $t0, puzzle
+    sw $t0, REQUEST_PUZZLE($0)
     li $t1, 1
     sw $t1, ANGLE_CONTROL($0)
     lw $t1, ANGLE($0)
-    add $t1, $t1, 70
+    add $t1, $t1, 80
     li $t2, 360
     rem $t1, $t1, $t2
     sw $t1, ANGLE($0)
@@ -185,8 +214,6 @@ request_puzzle_interrupt:
     sw $t0, SUBMIT_SOLUTION($0)
     li $t1, 1
     sw $t1, SWITCH_MODE($0)
-    la $t0, puzzle
-    sw $t0, REQUEST_PUZZLE($0)
 
 	j	interrupt_dispatch
 
@@ -217,6 +244,7 @@ done:
     eret
 
 solve:
+    sw $0, VELOCITY($0)
     sub     $sp, $sp, 36
     sw      $ra, 0($sp)
     sw      $s0, 4($sp)
@@ -329,6 +357,8 @@ solve_start_guess_end:
     li  $v0, 0        # done = false
 
 solve_done:
+    li $s0, 10
+    sw $s0, VELOCITY($0)
     lw  $ra, 0($sp)
     lw  $s0, 4($sp)
     lw  $s1, 8($sp)
