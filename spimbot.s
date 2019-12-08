@@ -58,7 +58,7 @@ heap:        .half 0:65536
 # 900 x 900 array filled with distances between cells
 # cells labelled in row major order
 distance:    .half 0:820000
-# 900 x 900 array 
+# 900 x 900 array
 # next[u][v] = next vertex you must visit in shortest path from u to v
 next:        .half 0:820000
 arenamap:    .word 0:900
@@ -224,10 +224,49 @@ request_puzzle_interrupt:
 
 	j	interrupt_dispatch
 
+	# Pathfinding ###################################################
+	#
+	# argument $a0: x1
+	# argument $a1: y1
+	# argument $a2: x2
+	# argument $a3: y2
+	#
+	# procedure Path(u, v)
+	#    if next[u][v] = null then
+	#        return []
+	#    path = [u]
+	#    while u ≠ v
+	#        u ← next[u][v]
+	#        path.append(u)
+	#    return path
+
+	# arenamap[x][y] = x + (y * 30)
+	# 
 timer_interrupt:
 	sw 		$0, TIMER_ACK
-	#Fill in your code here
+	sw  	$ra, 0($sp)
+	sw  	$s0, 4($sp)
+	sw  	$s1, 8($sp)
+	sw  	$s2, 12($sp)
+	sw  	$s3, 16($sp)
+	sw  	$s4, 20($sp)
+	sw  	$s5, 24($sp)
+	sw  	$s6, 28($sp)
+	sw  	$s7, 32($sp)
+	sub 	$sp, $sp, 36
+	la 		$s0, next
+	la 		$s1, target_x
+	la 		$s2, target_y
+
+	# stuff to get next[u][v]
+	# assume next[u][v] = $s4
+	bne		$s4, $0, notnull_pathfinding
+
     j        interrupt_dispatch    # see if other interrupts are waiting
+
+notnull_pathfinding:
+
+
 
 non_intrpt:                # was some non-interrupt
     li        $v0, PRINT_STRING
@@ -882,7 +921,7 @@ ih_done:
 # 		curr_cell =  map[row][column]
 # 		distance[curr_cell][curr_cell] = 0
 # 		next[curr_cell][curr_cell] = curr_cell
-#	
+#
 # 		for adjacent_cell to current cell:
 # 			if cell is a valid cell (not an obstacle or off the map):
 # 				distance[curr_cell][adjacent_cell] = 1
@@ -921,13 +960,3 @@ floyd_warshall_done:
     lw  $s7, 32($sp)
     add $sp, $sp, 36
     jr $ra
-
-# Pathfinding
-# procedure Path(u, v)
-#    if next[u][v] = null then
-#        return []
-#    path = [u]
-#    while u ≠ v
-#        u ← next[u][v]
-#        path.append(u)
-#    return path
