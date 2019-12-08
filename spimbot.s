@@ -1065,40 +1065,75 @@ check_left:
     sub $s6, $s3, 1
     blt $s6, $0, check_right
 
-    la $s7, arenamap
-    add $s7, $s7, $s6
-    lh $s7, 2($s7)
+    move $a0, $s6
+    jal get_tile_type_at_loc
+    beq $v0, $0, check_right # if obstacle, continue
 
-    li $t1, 2 # OBSTACLE
-    beq $s7, $t1, check_right # if arenamap[left_cell] == obstacle, check other adjacent cells
+    move $a0, $s3 # $a0 = u
+    move $a1, $s6 # $a1 = v
+    li $a2, 1 # $a2 = 1
+    jal store_to_distance # distance[u][v] = 1
 
-    li $s8, 900
-    mul $s8, $s8, $s3 # row is u, so multiply this by 900
-    add $s8, $s8, $s6 # offset for [u][v]
-
-    la $s7, distance
-    add $s7, $s7, $s8
-    li $t0, 1
-    sw $t0, 0($s7)
-
-    la $s7, next
-    add $s7, $s7, $s8
-    sw $s6, 0($s7)
+    move $a0, $s3 # $a0 = u
+    move $a1, $s6 # $a1 = v
+    move $a2, $s6 # $a2 = v
+    jal store_to_next # next[u][v] = v
 
 check_right:
     add $s6, $s3, 1
     li $t0, 900
-    bgt $s6, $t0, check_up
+    bge $s6, $t0, check_up
+
+    move $a0, $s6
+    jal get_tile_type_at_loc
+    beq $v0, $0, check_right # if obstacle, continue
+
+    move $a0, $s3 # $a0 = u
+    move $a1, $s6 # $a1 = v
+    li $a2, 1 # $a2 = 1
+    jal store_to_distance # distance[u][v] = 1
+
+    move $a0, $s3 # $a0 = u
+    move $a1, $s6 # $a1 = v
+    move $a2, $s6 # $a2 = v
+    jal store_to_next # next[u][v] = v
 
 check_up:
     sub $s6, $s3, 30
     blt $s6, $0, check_down
 
+    move $a0, $s6
+    jal get_tile_type_at_loc
+    beq $v0, $0, check_right # if obstacle, continue
+
+    move $a0, $s3 # $a0 = u
+    move $a1, $s6 # $a1 = v
+    li $a2, 1 # $a2 = 1
+    jal store_to_distance # distance[u][v] = 1
+
+    move $a0, $s3 # $a0 = u
+    move $a1, $s6 # $a1 = v
+    move $a2, $s6 # $a2 = v
+    jal store_to_next # next[u][v] = v
+
 check_down:
     add $s6, $s3, 30
     li $t0, 900
-    bgt $s6, $t0, start_floyd_warshall_loop_columns_inc
+    bge $s6, $t0, start_floyd_warshall_loop_columns_inc
 
+    move $a0, $s6
+    jal get_tile_type_at_loc
+    beq $v0, $0, check_right # if obstacle, continue
+
+    move $a0, $s3 # $a0 = u
+    move $a1, $s6 # $a1 = v
+    li $a2, 1 # $a2 = 1
+    jal store_to_distance # distance[u][v] = 1
+
+    move $a0, $s3 # $a0 = u
+    move $a1, $s6 # $a1 = v
+    move $a2, $s6 # $a2 = v
+    jal store_to_next # next[u][v] = v
 
 start_floyd_warshall_loop_columns_inc:
     add $s1, $s1, 1
@@ -1108,7 +1143,161 @@ start_floyd_warshall_loop_rows_inc:
     add $s0, $s0, 1
     j start_floyd_warshall_loop_rows
 
+# for k ($s0) in range(900)
+# 	for i ($s1) in range(900)
+# 		for j ($s2) in range(900)
+# 			if distance[i][j] > distance[i][k] + distance[k][j] then
+#               distance[i][j] ← distance[i][k] + distance[k][j]
+#               next[i][j] ← next[i][k]
 floyd_warshall_part_2:
+    li $s0, 0 # k = 0
+
+floyd_warshall_part_2_k_loop:
+    li $s1, 0 # i = 0
+    # check if k == 900
+    li $t0, 900
+    beq $s0, $t0, floyd_warshall_done
+
+floyd_warshall_part_2_i_loop:
+    li $s2, 0 # j = 0
+    # check if i == 900
+    li $t0, 900
+    beq $s1, $t0, floyd_warshall_part_2_k_loop_inc
+
+floyd_warshall_part_2_j_loop:
+    # check if j == 900
+    li $t0, 900
+    beq $s2, $t0, floyd_warshall_part_2_i_loop_inc
+
+floyd_warshall_part_2_inner_loop:
+    # get distance[i][j]
+    move $a0, $s1
+    move $a1, $s2
+    jal get_from_distance
+    move $t0, $v0
+    # get distance[i][k]
+    move $a0, $s1
+    move $a1, $s0
+    jal get_from_distance
+    move $t1, $v0
+    # get distance[k][j]
+    move $a0, $s2
+    move $a1, $s0
+    jal get_from_distance
+    move $t2, $v0
+
+    # get distance[i][k] + distance[k][j]
+    add $t3, $t1, $t2
+
+    # if distance[i][j] > distance[i][k] + distance[k][j] continue
+    ble $t0, $t3, floyd_warshall_part_2_j_loop_inc
+
+# distance[i][j] ← distance[i][k] + distance[k][j]
+# next[i][j] ← next[i][k]
+floyd_warshall_relax_edge:
+    move $a0, $s1
+    move $a1, $s2
+    move $a2, $t3
+    jal store_to_distance # distance[i][j] ← distance[i][k] + distance[k][j]
+
+    move $a0, $s1
+    move $a0, $s0
+    jal get_from_next # next[i][k]
+    move $t0, $v0
+
+    move $a0, $s1
+    move $a1, $s2
+    move $a2, $t0
+    jal store_to_next # next[i][j] ← next[i][k]
+
+floyd_warshall_part_2_j_loop_inc:
+    add $s2, $s2, 1 # j++
+    j floyd_warshall_part_2_j_loop
+
+floyd_warshall_part_2_i_loop_inc:
+    add $s1, $s1, 1 # j++
+    j floyd_warshall_part_2_i_loop
+
+floyd_warshall_part_2_k_loop_inc:
+    add $s0, $s0, 1 # k++
+    j floyd_warshall_part_2_k_loop
+
+
+# $a0 = u cell number (30*y + x)
+# $a1 = v cell number (30*y + x)
+# $a2 = value to store
+store_to_distance:
+    la $t0, distance # &distance
+
+    li $t1, 900
+    mul $t1, $t1, $a0
+    add $t1, $t1, $a1
+    mul $t1, $t1, 4 # word align
+    add $t1, $t1, $t0
+
+    sw $a2, 0($t1)
+
+    jr $ra
+
+# $a0 = u cell number (30*y + x)
+# $a1 = v cell number (30*y + x)
+# $a2 = value to store
+store_to_next:
+    la $t0, next # &distance
+
+    li $t1, 900
+    mul $t1, $t1, $a0
+    add $t1, $t1, $a1
+    mul $t1, $t1, 4 # word align
+    add $t1, $t1, $t0
+
+    sw $a2, 0($t1)
+
+    jr $ra
+
+# $a0 = u cell number (30*y + x)
+# $a1 = v cell number (30*y + x)
+get_from_distance:
+    la $t0, distance # &distance
+
+    li $t1, 900
+    mul $t1, $t1, $a0
+    add $t1, $t1, $a1
+    mul $t1, $t1, 4 # word align
+    add $t1, $t1, $t0
+
+    lw $v0, 0($t1)
+
+    jr $ra
+
+# $a0 = u cell number (30*y + x)
+# $a1 = v cell number (30*y + x)
+get_from_next:
+    la $t0, next # &distance
+
+    li $t1, 900
+    mul $t1, $t1, $a0
+    add $t1, $t1, $a1
+    mul $t1, $t1, 4 # word align
+    add $t1, $t1, $t0
+
+    lw $v0, 0($t1)
+
+    jr $ra
+
+# $a0 = cell number (30*y + x)
+# $v0 = 0 if tile type is obstacle, not otherwise
+get_tile_type_at_loc:
+    la $t0, arenamap
+    mul $t1, $a0, 4
+    add $t1, $t1, $t0
+    lh $t1, 2($t1)
+
+    li $t2, 2 # OBSTACLE
+
+    sub $v0, $t1, $t2
+
+    jr $ra
 
 floyd_warshall_done:
     lw  $ra, 0($sp)
