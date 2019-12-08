@@ -109,6 +109,11 @@ main:
 	sh 		$s2, 0($s3) 			# target_y = powerup 1's y location
 
     sw 		$s2, SPIMBOT_PRINT_INT($0)
+
+	lw 		$v0, TIMER($0)
+	add 	$v0, $v0, 50
+	sw 		$v0, TIMER($0)
+
     j 		loop
 
     lw  $ra, 0($sp)
@@ -144,8 +149,8 @@ interrupt_handler:
         sw        $t1, 12($k0)
         sw        $t2, 16($k0)
         sw        $t3, 20($k0)
-		sw $t4, 24($k0)
-		sw $t5, 28($k0)
+		sw 		  $t4, 24($k0)
+		sw 		  $t5, 28($k0)
 
         mfc0      $k0, $13             # Get Cause register
         srl       $a0, $k0, 2
@@ -198,18 +203,18 @@ request_puzzle_interrupt:
     la      $a0, puzzle
     la      $a1, heap
     jal     copy_board    # Copy board to heap
-    la $a0, heap
-    li $a1, 0
-    li $a2, 0
-    la $a3, puzzle
-    jal solve
-    la $t0, puzzle
-    sw $t0, SUBMIT_SOLUTION($0)
-    li $t1, 1
-    sw $t1, SWITCH_MODE($0)
-    sw $0, USE_POWERUP($0)
+    la 		$a0, heap
+    li 		$a1, 0
+    li 		$a2, 0
+    la 		$a3, puzzle
+    jal 	solve
+    la 		$t0, puzzle
+    sw 		$t0, SUBMIT_SOLUTION($0)
+    li 		$t1, 1
+    sw 		$t1, SWITCH_MODE($0)
+    sw 		$0, USE_POWERUP($0)
 
-	j	interrupt_dispatch
+	j		interrupt_dispatch
 
 
 timer_interrupt:
@@ -224,6 +229,8 @@ timer_interrupt:
 	sw  	$s6, 28($sp)
 	sw  	$s7, 32($sp)
 	sub 	$sp, $sp, 36
+	li 		$s0, 4200
+	sw 		$s0, SPIMBOT_PRINT_INT($0)
 
 	la 		$s0, next
 	lw 		$s0, 0($s0)
@@ -247,6 +254,9 @@ get_direction:
 	lw 		$s3, 0($s3)
 	lw 		$s4, 0($s4)
 
+	sw 		$s3, SPIMBOT_PRINT_INT($0)
+	sw 		$s4, SPIMBOT_PRINT_INT($0)
+
 	mul 	$s5, $s2, 30 			# $s5 = uy * 30
 	add 	$s5, $s5, $s1 			# $s5 = ux + s5
 
@@ -256,6 +266,10 @@ get_direction:
 
 	add 	$s7, $s5, $s7			# $s7 = u stuff + v stuff
 	add 	$s0, $s0, $s7			# s0 = next[u][v]
+
+	lw 		$v0, TIMER($0)
+	add 	$v0, $v0, 10000
+	sw 		$v0, TIMER($0)
 
 
     j        interrupt_dispatch    # see if other interrupts are waiting
@@ -282,7 +296,7 @@ pickup:
     lh 		$s5, 6($t2)
 	la		$s6, target_y
 	sh 		$s5, 0($s6) 			# target_y = powerup 1's y location
-	
+
     j 		get_direction
 
 
