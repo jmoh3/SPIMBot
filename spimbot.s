@@ -50,6 +50,7 @@ SCORES_REQUEST          = 0xffff1018
 GRIDSIZE = 8
 
 ### Put these in your data segment
+inventory:   .half 0:30
 puzzle:      .half 0:164
 heap:        .half 0:65536
 
@@ -78,8 +79,10 @@ loop:
     # lw $t2, GET_PAINT_BUCKETS($0)
     # la $t0, puzzle
     # sw $t0, REQUEST_PUZZLE($0)
-
+	li $t5, 5
+	sw $t5, PICKUP_POWERUP($0)
     j loop
+
 
 .kdata
 chunkIH:    .space 32
@@ -158,6 +161,8 @@ request_puzzle_interrupt:
     sw $t1, SWITCH_MODE($0)
     la $t0, puzzle
     sw $t0, REQUEST_PUZZLE($0)
+	li $t3, 0
+	sw $t3, USE_POWERUP($0)
 
 	j	interrupt_dispatch
 
@@ -238,10 +243,10 @@ solve_start_do:
     jal rule1          # changed = rule1(current_board);
     move $s6, $v0      # done
 
-    move $a0, $s2      # current_board
-    jal rule2
-
-    or   $v0, $v0, $s6 # changed |= rule2(current_board);
+    # move $a0, $s2      # current_board
+    # jal rule2
+	#
+    # or   $v0, $v0, $s6 # changed |= rule2(current_board);
 
     bne $v0, $0, solve_start_do # while (changed)
 
