@@ -241,7 +241,7 @@ request_puzzle_interrupt:
 	#    return path
 
 	# arenamap[x][y] = x + (y * 30)
-	# 
+	#
 timer_interrupt:
 	sw 		$0, TIMER_ACK
 	sw  	$ra, 0($sp)
@@ -254,13 +254,33 @@ timer_interrupt:
 	sw  	$s6, 28($sp)
 	sw  	$s7, 32($sp)
 	sub 	$sp, $sp, 36
-	la 		$s0, next
-	la 		$s1, target_x
-	la 		$s2, target_y
 
-	# stuff to get next[u][v]
-	# assume next[u][v] = $s4
-	bne		$s4, $0, notnull_pathfinding
+	la 		$s0, next
+	lw 		$s0, 0($s0)
+
+	lw 		$s1, BOT_X($0)
+	div 	$s1, $s1, 10
+
+	lw 		$s2, BOT_Y($0)
+	div 	$s2, $s2, 10
+
+	la 		$s3, target_x
+	lw 		$s3, 0($s3)
+
+	la 		$s4, target_y
+	lw 		$s4, 0($s4)
+
+	mul 	$s5, $s2, 30 			# $s5 = uy * 30
+	add 	$s5, $s5, $s1 			# $s5 = ux + s5
+
+	mul 	$s6, $s4, 30 			# $s6 = vy * 30
+	add 	$s6, $s6, $s3 			# $s6 = vx + s6
+	mul 	$s6, $s6, 900			# $s6 = 900 * s6
+
+	add 	$s5, $s5, $s6			# $s5 = u stuff + v stuff
+	add 	$s0, $s0, $s5			# s5 = next[u][v]
+
+	# bne		$s5, $0, notnull_pathfinding
 
     j        interrupt_dispatch    # see if other interrupts are waiting
 
@@ -946,7 +966,7 @@ floyd_warshall:
     sw  $s6, 28($sp)
     sw  $s7, 32($sp)
     sub $sp, $sp, 36
-    li 
+    li
 
 init_loop_rows:
 
