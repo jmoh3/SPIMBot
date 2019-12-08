@@ -109,6 +109,12 @@ main:
 	sh 		$s2, 0($s3) 			# target_y = powerup 1's y location
 
     sw 		$s2, SPIMBOT_PRINT_INT($0)
+
+    la $t0, arenamap
+    sw $t0, ARENA_MAP($0)
+
+    jal floyd_warshall
+
     j 		loop
 
     lw  $ra, 0($sp)
