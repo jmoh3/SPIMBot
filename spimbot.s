@@ -115,7 +115,7 @@ main:
     la $t0, arenamap
     sw $t0, ARENA_MAP($0)
 
-    jal floyd_warshall
+    # jal floyd_warshall
 
 	lw 		$v0, TIMER($0)
 	add 	$v0, $v0, 50
@@ -278,14 +278,23 @@ get_direction:
 
 	add 	$s7, $s5, $s7			# $s7 = u stuff + v stuff
 	add 	$s0, $s0, $s7			# s0 = next[u][v]
-	li 		$s6, 123456
-	sw 		$s6, SPIMBOT_PRINT_INT($0)
-	sw 		$s0, SPIMBOT_PRINT_INT($0)
+	# sw 		$s0, SPIMBOT_PRINT_INT($0)
 
 	sub		$s6, $s0, $s5 			# $s6 = next[u][v] - u
+	# li 		$s7, 1234
+	# sw 		$s7, SPIMBOT_PRINT_INT($0)
+	# sw 		$s6, SPIMBOT_PRINT_INT($0)
 
+	beq 	$s6, 30, turn_down
+	beq 	$s6, -30, turn_up
+	beq 	$s6, 1, turn_left
+	beq 	$s6, -1, turn_right
+	j 		set_timer
 
-
+set_angle:
+	sw 		$s7, ANGLE($0)
+	li 		$s5, 1
+	sw 		$s5, ANGLE_CONTROL($0)
 
 set_timer:
 	lw 		$v0, TIMER($0)
@@ -295,6 +304,27 @@ set_timer:
 
     j        interrupt_dispatch    # see if other interrupts are waiting
 
+
+
+# +x = 0 --> right
+turn_right:
+	li 		$s7, 0
+	j 		set_angle
+
+# +y = 90 --> down
+turn_down:
+	li 		$s7, 90
+	j 		set_angle
+
+# -x = 180 --> left
+turn_left:
+	li 		$s7, 180
+	j 		set_angle
+
+# -y = 270 --> up
+turn_up:
+	li 		$s7, 270
+	j 		set_angle
 
 check_y:
     beq 	$s2, $s4, pickup
