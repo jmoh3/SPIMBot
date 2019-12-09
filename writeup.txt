@@ -1,0 +1,7 @@
+Our Spimbot uses a modified Floyd-Warshall algorithm to find a path to the first powerup listed on the PowerUp Map. 
+
+Our bot's current strategy is to ***write about whatever we get done with Floyd-Warshall***
+
+We request a puzzle every time we hit a wall, so that we don't have to wait for a puzzle to arrive when we're already out of paint. The bot stops while it is solving a puzzle, so that we don't overlook any powerups.
+
+We also have the bot turn 70 degrees to the right every time it runs into a wall, however due to our path-finding implementation, we don't anticipate it ever reaching a bonk interrupt.
