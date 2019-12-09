@@ -52,6 +52,8 @@ GRIDSIZE = 8
 
 target_x:    .half 0:1
 target_y:    .half 0:1
+rep_x:       .half 0:1
+rep_y:       .half 0:1
 ### Put these in your data segment
 inventory:   .half 0:30
 powerup:     .half 0:200
@@ -124,24 +126,6 @@ main:
 	or      $t4, $t4, 1 # global enable
 	mtc0    $t4, $12
 
-    # allocate on the dynamic heap
-    li $a0,1620000   # $a0 contains the number of bytes you need.
-                  # This must be a multiple of four.
-    li $v0,9 # code 9 == allocate memory
-    syscall # call the service.
-    la $t0, distance
-    sd $v0, 0($t0)  # $v0 <-- the address of the first byte
-                    # of the dynamically allocated block
-
-    # allocate on the dynamic heap
-    li      $a0,1620000   # $a0 contains the number of bytes you need.
-                  # This must be a multiple of four.
-    li      $v0,9     # code 9 == allocate memory
-    syscall           # call the service.
-    la $t0, next
-    sd $v0, 0($t0)  # $v0 <-- the address of the first byte
-                    # of the dynamically allocated block
-
 	#Fill in your code here
     sw  $ra, 0($sp)
     sw  $s0, 4($sp)
@@ -180,12 +164,6 @@ main:
 
     la $t0, arenamap
     sw $t0, ARENA_MAP($0)
-
-    jal floyd_warshall
-
-	# lw 		$v0, TIMER($0)
-	# add 	$v0, $v0, 50
-	# sw 		$v0, TIMER($0)
 
     j 		loop
 
@@ -303,21 +281,38 @@ timer_interrupt:
 	sw  	$s7, 32($sp)
 	sub 	$sp, $sp, 36
 
-	la 		$s0, next
-	lw 		$s0, 0($s0)
+    # get repx and repy
+    la      $s1, rep_x
+    lh      $s1, 0($s1)
+    la      $s2, rep_y
+    lh      $s2, 0($s2)
 
-	lw 		$s1, BOT_X($0)
-	div 	$s1, $s1, 10
-	# sw 		$s1, SPIMBOT_PRINT_INT($0)
+	lw 		$s3, BOT_X($0)
+	div 	$s3, $s3, 10
 
-	lw 		$s2, BOT_Y($0)
-	div 	$s2, $s2, 10
-	# sw 		$s2, SPIMBOT_PRINT_INT($0)
+	lw 		$s4, BOT_Y($0)
+	div 	$s4, $s4, 10
 
+    move    $a0, $s3
+    move    $a1, $s4
+    jal     set_offpath
+
+    # get targetx and targety
+    la      $s1, target_x
+    lh      $s1, 0($s1)
+    la      $s2, target_y
+    lh      $s2, 0($s2)
+
+    bne     $s3, $s1, check_if_offpath
+    bne     $s4, $s2, check_if_offpath
+
+    # find closest node to self
 	move 	$a0, $s1
 	move 	$a1, $s2
 	jal 	find_closest_node
 	move 	$s5, $v0
+
+
 
 	la 		$s3, target_x
 	lh 		$s3, 0($s3)
@@ -329,6 +324,56 @@ timer_interrupt:
 
 
 	beq 	$s1, $s3, check_y
+
+check_if_offpath:
+
+should_set_offpath:
+    sw  	$s0, 0($sp)
+	sw  	$s1, 4($sp)
+	sw  	$s2, 8($sp)
+	sw  	$s3, 12($sp)
+	sw  	$s4, 16($sp)
+    sub     $sp, $sp, 20
+
+    lw 		$t0, BOT_X($0)
+	div 	$t0, $t0, 10
+
+	lw 		$t1, BOT_Y($0)
+	div 	$t1, $t1, 10
+
+    bne     $a0, $t0, should_set_offpath_done
+    bne     $a1, $t1, should_set_offpath_done
+
+    jal set_offpath
+
+    j should_set_offpath_done
+
+
+set_offpath:
+    sw  	$s0, 0($sp)
+	sw  	$s1, 4($sp)
+	sw  	$s2, 8($sp)
+	sw  	$s3, 12($sp)
+	sw  	$s4, 16($sp)
+    sub     $sp, $sp, 20
+
+set_offpath_done:
+    lw  	$s0, 0($sp)
+	lw  	$s1, 4($sp)
+	lw  	$s2, 8($sp)
+	lw  	$s3, 12($sp)
+	lw  	$s4, 16($sp)
+    add     $sp, $sp, 20
+    
+
+should_set_offpath_done:
+    lw  	$s0, 0($sp)
+	lw  	$s1, 4($sp)
+	lw  	$s2, 8($sp)
+	lw  	$s3, 12($sp)
+	lw  	$s4, 16($sp)
+    add     $sp, $sp, 20
+    jr $ra
 
 get_direction:
 	# load target_x and target_y again, in case new target
