@@ -56,15 +56,14 @@ target_y:    .half 0:1
 inventory:   .half 0:30
 powerup:     .half 0:200
 puzzle:      .half 0:164
-heap:        .half 0:65536
-
 arenamap:    .word 0:900
 # 900 x 900 array filled with distances between cells
 # cells labelled in row major order
-distance:    .half 0:810000
+distance:    .half 0:2
 # 900 x 900 array
 # next[u][v] = next vertex you must visit in shortest path from u to v
-next:        .byte 0:810000
+next:        .byte 0:2
+heap:        .half 0:65536
 
 .text
 main:
@@ -75,6 +74,24 @@ main:
 	or      $t4, $t4, REQUEST_PUZZLE_INT_MASK	        # puzzle interrupt bit
 	or      $t4, $t4, 1 # global enable
 	mtc0    $t4, $12
+
+    # allocate on the dynamic heap
+    li $a0,1620000   # $a0 contains the number of bytes you need.
+                  # This must be a multiple of four.
+    li $v0,9 # code 9 == allocate memory
+    syscall # call the service.
+    la $t0, distance
+    sd $v0, 0($t0)  # $v0 <-- the address of the first byte
+                    # of the dynamically allocated block
+    
+    # allocate on the dynamic heap
+    li      $a0,1620000   # $a0 contains the number of bytes you need.
+                  # This must be a multiple of four.
+    li      $v0,9     # code 9 == allocate memory
+    syscall           # call the service.
+    la $t0, next
+    sd $v0, 0($t0)  # $v0 <-- the address of the first byte
+                    # of the dynamically allocated block
 
 	#Fill in your code here
     sw  $ra, 0($sp)
@@ -88,38 +105,38 @@ main:
     sw  $s7, 32($sp)
     sub $sp, $sp, 36
 
-    la $t0, puzzle
-    sw $t0, REQUEST_PUZZLE($0)
-    li $t1, 1
-    sw $t1, SWITCH_MODE($0)
-    li $t1, 10
-    sw $t1, VELOCITY($0)
+    # la $t0, puzzle
+    # sw $t0, REQUEST_PUZZLE($0)
+    # li $t1, 1
+    # sw $t1, SWITCH_MODE($0)
+    # li $t1, 10
+    # sw $t1, VELOCITY($0)
 
-    la $t2, powerup
-    sw $t2, POWERUP_MAP($0)
+    # la $t2, powerup
+    # sw $t2, POWERUP_MAP($0)
 
-    # powerup 1's x location
-    lh 		$s0, 4($t2)
-	la		$s1, target_x
-	sh 		$s0, 0($s1) 			# target_x = powerup 1's x location
+    # # powerup 1's x location
+    # lh 		$s0, 4($t2)
+	# la		$s1, target_x
+	# sh 		$s0, 0($s1) 			# target_x = powerup 1's x location
 
-    # sw 		$s0, SPIMBOT_PRINT_INT($0)
+    # # sw 		$s0, SPIMBOT_PRINT_INT($0)
 
-	# powerup 1's y location
-    lh 		$s2, 6($t2)
-	la		$s3, target_y
-	sh 		$s2, 0($s3) 			# target_y = powerup 1's y location
+	# # powerup 1's y location
+    # lh 		$s2, 6($t2)
+	# la		$s3, target_y
+	# sh 		$s2, 0($s3) 			# target_y = powerup 1's y location
 
-    sw 		$s2, SPIMBOT_PRINT_INT($0)
+    # sw 		$s2, SPIMBOT_PRINT_INT($0)
 
     la $t0, arenamap
     sw $t0, ARENA_MAP($0)
 
-    # jal floyd_warshall
+    jal floyd_warshall
 
-	lw 		$v0, TIMER($0)
-	add 	$v0, $v0, 50
-	sw 		$v0, TIMER($0)
+	# lw 		$v0, TIMER($0)
+	# add 	$v0, $v0, 50
+	# sw 		$v0, TIMER($0)
 
     j 		loop
 
@@ -301,10 +318,7 @@ set_timer:
 	add 	$v0, $v0, 10000
 	sw 		$v0, TIMER($0)
 
-
     j        interrupt_dispatch    # see if other interrupts are waiting
-
-
 
 # +x = 0 --> right
 turn_right:
@@ -1251,12 +1265,12 @@ floyd_warshall_part_2_k_loop_inc:
     add $s0, $s0, 1 # k++
     j floyd_warshall_part_2_k_loop
 
-
 # $a0 = u cell number (30*y + x)
 # $a1 = v cell number (30*y + x)
 # $a2 = value to store
 store_to_distance:
     la $t0, distance # &distance
+    ld $t0 0($t0)
 
     li $t1, 900
     mul $t1, $t1, $a0
@@ -1273,6 +1287,7 @@ store_to_distance:
 # $a2 = value to store
 store_to_next:
     la $t0, next # &distance
+    ld $t0 0($t0)
 
     li $t1, 900
     mul $t1, $t1, $a0
@@ -1288,6 +1303,7 @@ store_to_next:
 # $a1 = v cell number (30*y + x)
 get_from_distance:
     la $t0, distance # &distance
+    ld $t0 0($t0)
 
     li $t1, 900
     mul $t1, $t1, $a0
@@ -1303,6 +1319,7 @@ get_from_distance:
 # $a1 = v cell number (30*y + x)
 get_from_next:
     la $t0, next # &distance
+    ld $t0 0($t0)
 
     li $t1, 900
     mul $t1, $t1, $a0
@@ -1339,4 +1356,39 @@ floyd_warshall_done:
     lw  $s6, 28($sp)
     lw  $s7, 32($sp)
     add $sp, $sp, 36
+
+    jal print_test
+
+    jr $ra
+
+
+# for i in range(900):
+#     for j in range(900):
+#         print(distance[i][j])
+#         print(next[i][j])
+print_test:
+    li $t0, 0
+
+print_test_row:
+    li $t3, 900
+    beq $t0, $t3, print_test_done
+    li $t1, 0
+
+print_test_col:
+    li $t3, 900
+    beq $t1, $t3, print_test_done
+    move $a0, $t0
+    move $a1, $t1
+    jal get_from_distance
+    sw $v0, SPIMBOT_PRINT_INT($0)
+
+print_test_col_inc:
+    add $t1, $t1, 1
+    j print_test_col
+
+print_test_row_inc:
+    add $t0, $t0, 1
+    j print_test_row
+
+print_test_done:
     jr $ra
