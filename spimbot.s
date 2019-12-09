@@ -56,6 +56,7 @@ target_y:    .half 0:1
 inventory:   .half 0:30
 powerup:     .half 0:200
 puzzle:      .half 0:164
+heap: 		 .half 0:4160
 arenamap:    .word 0:900
 heap:        .half 0:4160
 
@@ -77,7 +78,7 @@ main:
     la $t0, distance
     sd $v0, 0($t0)  # $v0 <-- the address of the first byte
                     # of the dynamically allocated block
-    
+
     # allocate on the dynamic heap
     li      $a0,1620000   # $a0 contains the number of bytes you need.
                   # This must be a multiple of four.
@@ -259,6 +260,11 @@ timer_interrupt:
 	div 	$s2, $s2, 10
 	# sw 		$s2, SPIMBOT_PRINT_INT($0)
 
+	move 	$a0, $s1
+	move 	$a1, $s2
+	jal 	find_closest_node
+	move 	$s5, $v0
+
 	la 		$s3, target_x
 	lh 		$s3, 0($s3)
 	# sw 		$s3, SPIMBOT_PRINT_INT($0)
@@ -359,6 +365,26 @@ pickup:
 	sh 		$s5, 0($s6) 			# target_y = powerup 1's y location
 
     j 		get_direction
+
+# find_closest_node #####################################################
+#
+# argument $a0: x
+# argument $a1: y
+find_closest_node:
+	sw  	$ra, 0($sp)
+	sw  	$s0, 4($sp)
+	sw  	$s1, 8($sp)
+	sw  	$s2, 12($sp)
+	sw  	$s3, 16($sp)
+	sw  	$s4, 20($sp)
+	sw  	$s5, 24($sp)
+	sw  	$s6, 28($sp)
+	sw  	$s7, 32($sp)
+	sub 	$sp, $sp, 36
+
+	la 		$s0, vertices
+	lw 		$s0, 0($s0)
+
 
 
 non_intrpt:                # was some non-interrupt
