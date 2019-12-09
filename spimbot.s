@@ -54,6 +54,8 @@ target_x:    .half 0:1
 target_y:    .half 0:1
 rep_x:       .half 0:1
 rep_y:       .half 0:1
+temp_x:      .half 0:1
+temp_y:      .half 0:1
 ### Put these in your data segment
 inventory:   .half 0:30
 powerup:     .half 0:200
@@ -485,6 +487,59 @@ find_closest_node:
 
 	la 		$s0, vertices
 	lw 		$s0, 0($s0)
+
+	blt		$a1, 5, first_four # less than nine, look at first 4
+	blt 	$a1, 9, second_four # less than, look at 4-7
+	blt 	$a1, 14, third_four # less than, look at 8-11
+	blt 	$a1, 19, fourth_four # less than, look at 12-15
+	blt 	$a1, 23, fifth_four # less than, look at 16-19
+	lw 		$s0, 80($s0) # look at 20-23
+
+find_closest_x:
+	blt		$a0, 6, return_closest_node
+	blt		$a0, 14, horizontal_second
+	blt		$a0, 22, horizontal_third
+	# else
+	add 	$s0, $s0, 12
+
+return_closest_node:
+	la 		$s1, temp_x
+	la 		$s2, temp_y
+	sh 		$s0, 0($s1)
+	sh 		$s0, 2($s2)
+
+
+horizontal_second:
+	add 	$s0, $s0, 4
+	j 		return_closest_node
+
+horizontal_third:
+	add 	$s0, $s0, 8
+	j 		return_closest_node
+
+
+first_four:
+	lw 		$s0, 0($s0)
+	j find_closest_x
+
+second_four:
+	lw 		$s0, 16($s0)
+	j find_closest_x
+
+third_four:
+	lw 		$s0, 32($s0)
+	j find_closest_x
+
+fourth_four:
+	lw 		$s0, 48($s0)
+	j find_closest_x
+
+fifth_four:
+	lw 		$s0, 64($s0)
+	j find_closest_x
+
+
+
 
 
 
