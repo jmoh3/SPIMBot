@@ -143,12 +143,12 @@ for i in range(len(vertices)):
 
 print('vertices:')
 for vertex in vertices:
-    print(f'.half: {vertex[0]}, {vertex[1]}')
+    print(f'.half {vertex[0]}, {vertex[1]},')
 
 print('next:')
 for row in new_next:
-    string = '.half: '
+    string = '.half '
     for elem in row:
         for thing in elem:
             string += str(thing) + ', '
-    print(string[:-2])
+    print(string)
