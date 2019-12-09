@@ -457,6 +457,7 @@ find_closest_node:
 
 	la 		$s0, vertices
 	lw 		$s0, 0($s0)
+	
 
 
 
