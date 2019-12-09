@@ -65,30 +65,30 @@ arenamap:    .word 0:900
 offpath:     .half 0:35
 
 vertices:
-.half: 3, 3
-.half: 11, 3
-.half: 18, 3
-.half: 25, 3
-.half: 3, 8
-.half: 11, 8
-.half: 18, 8
-.half: 25, 8
-.half: 3, 12
-.half: 8, 12
-.half: 21, 12
-.half: 25, 12
-.half: 3, 17
-.half: 8, 17
-.half: 21, 17
-.half: 25, 17
-.half: 3, 21
-.half: 11, 21
-.half: 18, 21
-.half: 25, 21
-.half: 3, 26
-.half: 11, 26
-.half: 18, 26
-.half: 25, 26
+.half 3, 3,
+.half 11, 3,
+.half 18, 3,
+.half 25, 3,
+.half 3, 8,
+.half 11, 8,
+.half 18, 8,
+.half 25, 8,
+.half 3, 12,
+.half 8, 12,
+.half 21, 12,
+.half 25, 12,
+.half 3, 17,
+.half 8, 17,
+.half 21, 17,
+.half 25, 17,
+.half 3, 21,
+.half 11, 21,
+.half 18, 21,
+.half 25, 21,
+.half 3, 26,
+.half 11, 26,
+.half 18, 26,
+.half 25, 26,
 
 next:
 .half: 0, 0, 0, 1, 0, 8, 1, 0, 8, 1, 0, 8, 4, 1, 5, 1, 0, 8, 1, 0, 8, 1, 0, 8, 4, 1, 5, 4, 1, 5, 1, 0, 8, 1, 0, 8, 4, 1, 5, 4, 1, 5, 1, 0, 8, 1, 0, 8, 4, 1, 5, 4, 1, 5, 4, 1, 5, 1, 0, 8, 4, 1, 5, 4, 1, 5, 4, 1, 5, 4, 1, 5
@@ -366,7 +366,7 @@ set_offpath_done:
 	lw  	$s3, 12($sp)
 	lw  	$s4, 16($sp)
     add     $sp, $sp, 20
-    
+
 
 should_set_offpath_done:
     lw  	$s0, 0($sp)
@@ -478,12 +478,7 @@ find_closest_node:
 	sw  	$s0, 4($sp)
 	sw  	$s1, 8($sp)
 	sw  	$s2, 12($sp)
-	sw  	$s3, 16($sp)
-	sw  	$s4, 20($sp)
-	sw  	$s5, 24($sp)
-	sw  	$s6, 28($sp)
-	sw  	$s7, 32($sp)
-	sub 	$sp, $sp, 36
+	sub 	$sp, $sp, 16
 
 	la 		$s0, vertices
 	lw 		$s0, 0($s0)
