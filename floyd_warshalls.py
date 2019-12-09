@@ -142,6 +142,9 @@ for i in range(len(vertices)):
         new_next[i][j][1] = int(angle)
         new_next[i][j][2] = int(distance)
 
+print('vertices:')
+for vertex in vertices:
+    print(f'.half: {vertex[0]}, {vertex[1]}')
 
 print('next:')
 for row in new_next:

@@ -286,6 +286,8 @@ get_direction:
 	# sw 		$s1, SPIMBOT_PRINT_INT($0)
 	# sw 		$s2, SPIMBOT_PRINT_INT($0)
 
+    # s2 is bot y
+    # s1 is bot x
 	mul 	$s5, $s2, 30 			# $s5 = uy * 30
 	add 	$s5, $s5, $s1 			# $s5 = ux + s5
 
