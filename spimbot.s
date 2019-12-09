@@ -50,20 +50,21 @@ SPIMBOT_PRINT_INT       = 0xffff0080
 ### Puzzle
 GRIDSIZE = 8
 
+target_x:    .half 0:1
+target_y:    .half 0:1
 ### Put these in your data segment
 inventory:   .half 0:30
 powerup:     .half 0:200
 puzzle:      .half 0:164
 heap:        .half 0:65536
+
+arenamap:    .word 0:900
 # 900 x 900 array filled with distances between cells
 # cells labelled in row major order
-distance:    .word 0:820000
+distance:    .half 0:810000
 # 900 x 900 array
 # next[u][v] = next vertex you must visit in shortest path from u to v
-next:        .word 0:820000
-arenamap:    .word 0:900
-target_x:    .half 0:1
-target_y:    .half 0:1
+next:        .byte 0:810000
 
 .text
 main:
@@ -987,7 +988,7 @@ ih_done:
 # 			if distance[i][j] > distance[i][k] + distance[k][j] then
 #               distance[i][j] ← distance[i][k] + distance[k][j]
 #                next[i][j] ← next[i][k]
-
+.text
 floyd_warshall:
     #Fill in your code here
     sw  $ra, 0($sp)
@@ -1009,23 +1010,16 @@ init_floyd_warshall_loop_rows:
 
 init_floyd_warshall_loop_columns:
     beq $s1, $s2, init_floyd_warshall_loop_rows_inc
-    # find offset for $s0, $s1
-    # offset = 900 * $s0 + $s1
-    li $s3, 900
-    mul $s3, $s3, $s0
-    add $s3, $s3, $s1
-    la $s4, distance
-    # &distance[u][v]
-    add $s4, $s4, $s3
-    # Max int
-    li $s5, 65536
-    sw $s5, 0($s4) # distance[u][v] = infinity
-    la $s4, next
-    # &next[u][v]
-    add $s4, $s4, $s3
-    # None
-    li $s5, -1
-    sw $s5, 0($s4) # next[u][v] = None
+
+    move $a0, $s0
+    move $a1, $s1
+    li $a2, 65536
+    jal store_to_distance
+
+    move $a0, $s0
+    move $a1, $s1
+    li $a2, -1
+    jal store_to_next
 
 init_floyd_warshall_loop_columns_inc:
     add $s1, $s1, 1
@@ -1237,10 +1231,10 @@ store_to_distance:
     li $t1, 900
     mul $t1, $t1, $a0
     add $t1, $t1, $a1
-    mul $t1, $t1, 4 # word align
+    mul $t1, $t1, 2 # half align
     add $t1, $t1, $t0
 
-    sw $a2, 0($t1)
+    sh $a2, 0($t1)
 
     jr $ra
 
@@ -1253,10 +1247,10 @@ store_to_next:
     li $t1, 900
     mul $t1, $t1, $a0
     add $t1, $t1, $a1
-    mul $t1, $t1, 4 # word align
+    mul $t1, $t1, 2 # half align
     add $t1, $t1, $t0
 
-    sw $a2, 0($t1)
+    sh $a2, 0($t1)
 
     jr $ra
 
@@ -1268,10 +1262,10 @@ get_from_distance:
     li $t1, 900
     mul $t1, $t1, $a0
     add $t1, $t1, $a1
-    mul $t1, $t1, 4 # word align
+    mul $t1, $t1, 2 # half align
     add $t1, $t1, $t0
 
-    lw $v0, 0($t1)
+    lh $v0, 0($t1)
 
     jr $ra
 
@@ -1283,10 +1277,10 @@ get_from_next:
     li $t1, 900
     mul $t1, $t1, $a0
     add $t1, $t1, $a1
-    mul $t1, $t1, 4 # word align
+    mul $t1, $t1, 2 # half align
     add $t1, $t1, $t0
 
-    lw $v0, 0($t1)
+    lh $v0, 0($t1)
 
     jr $ra
 
