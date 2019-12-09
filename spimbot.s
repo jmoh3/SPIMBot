@@ -57,13 +57,80 @@ inventory:   .half 0:30
 powerup:     .half 0:200
 puzzle:      .half 0:164
 arenamap:    .word 0:900
-# 900 x 900 array filled with distances between cells
-# cells labelled in row major order
-distance:    .half 0:2
-# 900 x 900 array
-# next[u][v] = next vertex you must visit in shortest path from u to v
-next:        .byte 0:2
-heap:        .half 0:65536
+
+vertices:
+.half 3, 3
+.half 8, 3
+.half 14, 3
+.half 21, 3
+.half 25, 3
+.half 11, 6
+.half 18, 6
+.half 3, 8
+.half 14, 8
+.half 25, 8
+.half 9, 11
+.half 20, 11
+.half 3, 14
+.half 25, 14
+.half 9, 15
+.half 20, 15
+.half 3, 18
+.half 9, 18
+.half 19, 18
+.half 25, 18
+.half 3, 22
+.half 12, 22
+.half 17, 22
+.half 25, 22
+.half 3, 26
+.half 7, 26
+.half 15, 26
+.half 20, 26
+.half 25, 26
+
+edges:
+.half 0, 1
+.half 0, 7
+.half 1, 2
+.half 2, 5
+.half 2, 8
+.half 2, 6
+.half 2, 3
+.half 3, 4
+.half 4, 9
+.half 5, 8
+.half 6, 8
+.half 7, 12
+.half 8, 10
+.half 8, 11
+.half 9, 13
+.half 10, 12
+.half 10, 14
+.half 11, 15
+.half 11, 13
+.half 12, 14
+.half 12, 17
+.half 12, 16
+.half 13, 15
+.half 13, 18
+.half 13, 19
+.half 14, 17
+.half 15, 18
+.half 16, 17
+.half 16, 20
+.half 17, 21
+.half 18, 19
+.half 18, 22
+.half 19, 23
+.half 20, 24
+.half 21, 26
+.half 22, 26
+.half 23, 28
+.half 24, 25
+.half 25, 26
+.half 26, 27
+.half 27, 28
 
 .text
 main:
@@ -105,29 +172,29 @@ main:
     sw  $s7, 32($sp)
     sub $sp, $sp, 36
 
-    # la $t0, puzzle
-    # sw $t0, REQUEST_PUZZLE($0)
-    # li $t1, 1
-    # sw $t1, SWITCH_MODE($0)
-    # li $t1, 10
-    # sw $t1, VELOCITY($0)
+    la $t0, puzzle
+    sw $t0, REQUEST_PUZZLE($0)
+    li $t1, 1
+    sw $t1, SWITCH_MODE($0)
+    li $t1, 10
+    sw $t1, VELOCITY($0)
 
-    # la $t2, powerup
-    # sw $t2, POWERUP_MAP($0)
+    la $t2, powerup
+    sw $t2, POWERUP_MAP($0)
 
-    # # powerup 1's x location
-    # lh 		$s0, 4($t2)
-	# la		$s1, target_x
-	# sh 		$s0, 0($s1) 			# target_x = powerup 1's x location
+    # powerup 1's x location
+    lh 		$s0, 4($t2)
+	la		$s1, target_x
+	sh 		$s0, 0($s1) 			# target_x = powerup 1's x location
 
-    # # sw 		$s0, SPIMBOT_PRINT_INT($0)
+    # sw 		$s0, SPIMBOT_PRINT_INT($0)
 
-	# # powerup 1's y location
-    # lh 		$s2, 6($t2)
-	# la		$s3, target_y
-	# sh 		$s2, 0($s3) 			# target_y = powerup 1's y location
+	# powerup 1's y location
+    lh 		$s2, 6($t2)
+	la		$s3, target_y
+	sh 		$s2, 0($s3) 			# target_y = powerup 1's y location
 
-    # sw 		$s2, SPIMBOT_PRINT_INT($0)
+    sw 		$s2, SPIMBOT_PRINT_INT($0)
 
     la $t0, arenamap
     sw $t0, ARENA_MAP($0)
