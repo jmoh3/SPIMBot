@@ -54,6 +54,7 @@ target_x:    .half 0:1
 target_y:    .half 0:1
 rep_x:       .half 0:1
 rep_y:       .half 0:1
+target_label:.half 0:1
 temp_x:      .half 0:1
 temp_y:      .half 0:1
 ### Put these in your data segment
@@ -63,6 +64,7 @@ puzzle:      .half 0:164
 heap: 		 .half 0:4160
 arenamap:    .word 0:900
 offpath:     .half 0:35
+curr_idx:    .half 0:1
 
 vertices:
 .half 3, 3,
@@ -115,7 +117,6 @@ next:
 .half 0, -1, 24, 1, -1, 23, 2, -1, 24, 3, -1, 26, 4, -1, 19, 5, -1, 18, 6, -1, 19, 7, 0, 22, 8, -2, 16, 9, -1, 14, 10, 0, 17, 11, 0, 19, 12, -2, 12, 13, -1, 9, 14, 0, 13, 15, 0, 16, 16, -2, 9, 17, -1, 5, 18, 0, 8, 19, 0, 14, 20, 3, 8, 21, 0, 0, 22, 0, 7, 22, 0, 7, 
 .half 0, -2, 27, 1, -1, 24, 2, -1, 23, 3, -1, 24, 4, -2, 23, 5, -1, 19, 6, -1, 18, 7, -1, 19, 8, -2, 20, 9, -2, 17, 10, -1, 14, 11, -1, 15, 12, -2, 17, 13, -2, 13, 14, -1, 9, 15, 0, 11, 16, -2, 15, 17, -2, 8, 18, -1, 5, 19, 0, 8, 20, 3, 15, 21, 3, 7, 22, 0, 0, 23, 0, 7, 
 .half 0, -2, 31, 1, -2, 26, 2, -1, 24, 3, -1, 23, 4, -2, 28, 5, -2, 22, 6, -1, 19, 7, -1, 18, 8, -2, 26, 9, -2, 22, 10, -1, 14, 11, -1, 14, 12, -2, 23, 13, -2, 19, 14, -1, 9, 15, -1, 9, 16, -2, 22, 17, -2, 14, 18, -2, 8, 19, -1, 5, 20, 3, 22, 21, 3, 14, 22, 3, 7, 23, 0, 0,
-heap:        .half 0:4160
 
 .text
 main:
@@ -307,7 +308,7 @@ timer_interrupt:
     bne     $s3, $s1, check_if_offpath
     bne     $s4, $s2, check_if_offpath
 
-    # find closest node to powerup
+    # find next powerup
     la $t2, powerup
     sw $t2, POWERUP_MAP($0)
 
@@ -321,11 +322,34 @@ timer_interrupt:
 	la		$s3, target_y
 	sh 		$s2, 0($s3) 			# target_y = powerup 1's y location
 
-    
+    # find closest node to powerup
+    move 	$a0, $s0
+	move 	$a1, $s2
+	jal 	find_closest_node
+
+    # set repx and repy
+    la      $s0, temp_x
+    la      $s1, temp_y
+
+    lh      $s0, 0($s0) # repx
+    lh      $s1, 0($s1) # repy
+
+    la      $s5, rep_x
+    la      $s6, rep_y
+
+    sh      $s0, 0($s5) # store to repx
+    sh      $s1, 0($s6) # store to repy
+
+    # get own position
+    lw 		$s3, BOT_X($0)
+	div 	$s3, $s3, 10
+
+	lw 		$s4, BOT_Y($0)
+	div 	$s4, $s4, 10
 
     # find closest node to self
-	move 	$a0, $s1
-	move 	$a1, $s2
+	move 	$a0, $s3
+	move 	$a1, $s4
 	jal 	find_closest_node
 	
     la      $s0, temp_x
@@ -333,21 +357,58 @@ timer_interrupt:
 
     lh      $a0, 0($s0)
     lh      $a1, 0($s1)
-    jal     set_offpath
-
-
-	la 		$s3, target_x
-	lh 		$s3, 0($s3)
-	# sw 		$s3, SPIMBOT_PRINT_INT($0)
-
-	la 		$s4, target_y
-	lh 		$s4, 0($s4)
-	# sw 		$s4, SPIMBOT_PRINT_INT($0)
-
-
-	beq 	$s1, $s3, check_y
+    jal     set_offpath # set offpath
 
 check_if_offpath:
+    la      $s0, offpath
+    lh      $s1, 0($s0)
+    li      $t0, -1
+
+    beq     $s1, $t0, find_next
+
+check_if_at_offpath_dest:
+    lh      $s2, 2($s0)
+
+    lw 		$s3, BOT_X($0)
+	div 	$s3, $s3, 10
+
+	lw 		$s4, BOT_Y($0)
+	div 	$s4, $s4, 10
+
+    bne     $s1, $s3, go_to_next_offpath
+    bne     $s2, $s4, go_to_next_offpath
+
+at_offpath_dest:
+    li      $t0, -1
+    sh      $t0, 0($s0)
+    j       find_next
+
+go_to_next_offpath:
+    lh      $t0, 4($s0) # gets pos_in_next
+    add     $t1, $t0, 1
+    sh      $t1, 4($s0) # increment pos_in_next by 1
+    mul     $t0, $t0, 4
+    add     $t0, $t0, 6
+    add     $t0, $t0, $s0
+
+    lh      $s1, 0($t0) # next x
+    lh      $s2, 2($t0) # next y
+
+    # if next_x == x - 1 go left
+    sub     $t0, $s3, 1
+    beq     $t0, $s1, turn_left
+
+    # if next_x == x + 1 go right
+    add     $t0, $s3, 1
+    beq     $t0, $s1, turn_right
+
+    # if next_y == y - 1 go down
+    sub     $t0, $s4, 1
+    beq     $t0, $s1, turn_down
+
+    # if next_y == y + 1 go up
+    sub     $t0, $s3, 1
+    beq     $t0, $s1, turn_up
 
 should_set_offpath:
     sw  	$s0, 0($sp)
@@ -370,7 +431,8 @@ should_set_offpath:
 
     j should_set_offpath_done
 
-
+# $a0 = target x
+# $a1 = target y
 set_offpath:
     sw  	$s0, 0($sp)
 	sw  	$s1, 4($sp)
@@ -378,6 +440,161 @@ set_offpath:
 	sw  	$s3, 12($sp)
 	sw  	$s4, 16($sp)
     sub     $sp, $sp, 20
+
+    la      $s0, offpath
+    sh      $a0, 0($s0) # store offpath target x
+    sh      $a1, 2($s0) # store offpath target y
+    sh      $0, 4($s0) # store position in next
+
+    add     $s0, $s0, 6 # current address in next
+
+    lw 		$t0, BOT_X($0)
+	div 	$t0, $t0, 10 # t0 = botx
+
+	lw 		$t1, BOT_Y($0)
+	div 	$t1, $t1, 10 # t1 = boty
+
+    move    $t2, $a0 # target x
+    move    $t3, $a1 # target y
+
+make_next_while_loop:
+    sub     $t4, $t2, $t0 # delta x
+    sub     $t5, $t3, $t1 # delta x
+
+    blt     $t4, $0, try_left # if you have to move -x, try left
+    bgt     $t4, $0, try_right
+    blt     $t5, $0, try_up # if you have to move -y, try left
+    bgt     $t5, $0, try_down
+
+    j       set_offpath_done
+
+try_down:
+    add     $t1, $t1, 1
+    li      $t7, 30
+    bge     $t1, $t7, no_down
+    
+    mul     $t7, $t0, 30
+    add     $t7, $t7, $t1
+    mul     $t7, $t7, 4
+
+    la      $t8, arenamap
+    sw      $t8, ARENA_MAP($0)
+
+    add     $t8, $t8, $t7
+    lh      $s1, 0($t8)
+
+    li      $s2, 2
+    beq     $s2, $s1, no_down
+
+    j go_down
+
+    
+no_down:
+    sub     $t1, $t1, 1
+    blt     $t4, $0, try_left # if you have to move -x, try left
+    bgt     $t4, $0, try_right
+    j try_down
+
+go_down:
+    sh      $t0, 0($s0)
+    sh      $t1, 2($s0)
+
+    add     $s0, $s0, 4
+    j       make_next_while_loop
+
+try_up:
+    sub     $t1, $t1, 1
+    blt     $t1, $0, no_up
+    
+    mul     $t7, $t0, 30
+    add     $t7, $t7, $t1
+    mul     $t7, $t7, 4
+
+    la      $t8, arenamap
+    sw      $t8, ARENA_MAP($0)
+
+    add     $t8, $t8, $t7
+    lh      $s1, 0($t8)
+
+    li      $s2, 2
+    beq     $s2, $s1, no_up
+
+    j go_up
+
+no_up:
+    add     $t1, $t1, 1
+
+    blt     $t4, $0, try_left # if you have to move -x, try left
+    bgt     $t4, $0, try_right
+    j       try_up # if you have to move -y, try left
+
+go_up:
+    sh      $t0, 0($s0)
+    sh      $t1, 2($s0)
+
+    add     $s0, $s0, 4
+    j       make_next_while_loop
+
+try_left:
+    sub     $t0, $t0, 1
+    blt     $t0, $0, no_left
+    
+    mul     $t7, $t0, 30
+    add     $t7, $t7, $t1
+    mul     $t7, $t7, 4
+
+    la      $t8, arenamap
+    sw      $t8, ARENA_MAP($0)
+
+    add     $t8, $t8, $t7
+    lh      $s1, 0($t8)
+
+    li      $s2, 2
+    beq     $s2, $s1, no_left
+
+    j go_left
+
+no_left:
+    add     $t0, $t0, 1
+
+    blt     $t5, $0, try_up # if you have to move -y, try left
+    bgt     $t5, $0, try_down
+    j       try_right
+
+go_left:
+    add     $s0, $s0, 4
+    j       make_next_while_loop
+
+try_right:
+    add     $t0, $t0, 1
+    li      $t7, 30
+    bge     $t0, $t7, no_right
+    
+    mul     $t7, $t0, 30
+    add     $t7, $t7, $t1
+    mul     $t7, $t7, 4
+
+    la      $t8, arenamap
+    sw      $t8, ARENA_MAP($0)
+
+    add     $t8, $t8, $t7
+    lh      $s1, 0($t8)
+
+    li      $s2, 2
+    beq     $s2, $s1, no_right
+
+    j go_right
+
+no_right:
+    sub     $t0, $t0, 1
+
+    blt     $t5, $0, try_up # if you have to move -y, try left
+    bgt     $t5, $0, try_down
+    j       try_right
+
+go_right:
+    add     $s0, $s0, 4
+    j       make_next_while_loop
 
 set_offpath_done:
     lw  	$s0, 0($sp)
@@ -397,49 +614,38 @@ should_set_offpath_done:
     add     $sp, $sp, 20
     jr $ra
 
-get_direction:
-	# load target_x and target_y again, in case new target
-	la 		$s3, target_x
-	lh 		$s3, 0($s3)
-	la 		$s4, target_y
-	lh 		$s4, 0($s4)
+find_next:
+    # get current vertex
+    la      $s0, curr_idx
+    lh      $t0, 0($s0)
+    la      $t1, target_label
+    lh      $t1, 0($t1)
 
-	# sw 		$s1, SPIMBOT_PRINT_INT($0)
-	# sw 		$s2, SPIMBOT_PRINT_INT($0)
+    mul     $t0, $t0, 24
+    add     $t0, $t0, $t1
+    mul     $t0, $t0, 6
+    
+    la      $t1, next
+    add     $t1, $t1, $t0
 
-    # s2 is bot y
-    # s1 is bot x
-	mul 	$s5, $s2, 30 			# $s5 = uy * 30
-	add 	$s5, $s5, $s1 			# $s5 = ux + s5
+    lh      $t2, 0($t1) # next
 
-	mul 	$s6, $s4, 30 			# $s6 = vy * 30
-	add 	$s6, $s6, $s3 			# $s6 = vx + s6
-	mul 	$s7, $s6, 900			# $s7 = 900 * s6
+    sh      $t2, 0($s0) # store next to curr idx
 
-	add 	$s7, $s5, $s7			# $s7 = u stuff + v stuff
-	add 	$s0, $s0, $s7			# s0 = next[u][v]
-	# sw 		$s0, SPIMBOT_PRINT_INT($0)
+    lh      $t3, 2($t1) # angle
+    lh      $t4, 4($t1) # distance
 
-	sub		$s6, $s0, $s5 			# $s6 = next[u][v] - u
-	# li 		$s7, 1234
-	# sw 		$s7, SPIMBOT_PRINT_INT($0)
-	# sw 		$s6, SPIMBOT_PRINT_INT($0)
-
-	beq 	$s6, 30, turn_down
-	beq 	$s6, -30, turn_up
-	beq 	$s6, 1, turn_left
-	beq 	$s6, -1, turn_right
-	j 		set_timer
-
+    mul     $t4, $t4, 1000 # for timer interrupt
+    
 set_angle:
-	sw 		$s7, ANGLE($0)
+	sw 		$t3, ANGLE($0)
 	li 		$s5, 1
 	sw 		$s5, ANGLE_CONTROL($0)
 
 set_timer:
-	lw 		$v0, TIMER($0)
-	add 	$v0, $v0, 10000
-	sw 		$v0, TIMER($0)
+	lw 		$t0, TIMER($0)
+    add     $t0, $t0, $t4
+	sw 		$t0, TIMER($0)
 
     j        interrupt_dispatch    # see if other interrupts are waiting
 
